@@ -1,0 +1,18 @@
+// 全局样式文件（中文注释）
+// 重置基础样式
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #app { height: 100%; }
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+}
+
+// 常用布局工具类
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+// Element Plus 简单外观优化
+.el-button { border-radius: 6px; }
+.el-card { border-radius: 8px; box-shadow: 0 2px 12px 0 rgba(0,0,0,0.08); }
