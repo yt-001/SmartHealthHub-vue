@@ -1,28 +1,33 @@
+// 用户模块 API（HttpOnly Cookie 会话，中文注释）
 import request from '../http'
 import type { UserInfo } from '@/typings'
+import type { LoginPayload } from '@/api/types/userTypes'
+import { ApiResponse } from '@/api/types'
 
 /**
- * 登录接口
- * @param data 登录凭据，包含用户名和密码
- * @returns Promise，解析后为包含 token 的对象
+ * 登录接口（JSON 提交，配合后端 @RequestParam/@RequestBody 的 JSON 接收）
+ * 提交参数（JSON）：{ phone: string, password: string, role?: number }
+ * 返回：void（经 http 响应拦截器解包后的 data）
  */
-export const login = (data: { username: string; password: string }): Promise<{ token: string }> => {
-  return request.post('/user/login', data)
+export const login = async (data: LoginPayload): Promise<ApiResponse<any>> => {
+  // 直接以 JSON 提交；http.ts 已全局设置 Content-Type: application/json;charset=UTF-8，且 withCredentials: true
+  return request.post('/auth/login', data) as Promise<ApiResponse<any>>
 }
 
 /**
- * 注册接口
- * @param data 注册信息，包含用户名、邮箱和密码
- * @returns Promise
+ * 拉取当前登录用户信息（依赖 HttpOnly Cookie 会话）
+ * 约定路径：/user/me（如后端不同，请告知我具体路径以便调整）
+ * 返回：UserInfo
  */
-export const register = (data: { username: string; email: string; password: string }): Promise<void> => {
-  return request.post('/user/register', data)
+export const getUserInfo = async (): Promise<ApiResponse<UserInfo>> => {
+  return request.get('/user/me') as Promise<ApiResponse<UserInfo>>
 }
 
 /**
- * 获取用户信息接口
- * @returns Promise，解析后为用户信息对象
+ * 刷新会话/令牌（HttpOnly Cookie），前端不持久化令牌
+ * 约定路径：/auth/refresh（如后端不同，请告知我具体路径以便调整）
+ * 返回：void
  */
-export const getUserInfo = (): Promise<UserInfo> => {
-  return request.get('/user/info')
+export const refresh = async (): Promise<ApiResponse<void>> => {
+  return request.post('/auth/refresh', {}) as Promise<ApiResponse<void>>
 }

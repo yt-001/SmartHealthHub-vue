@@ -59,11 +59,11 @@
         <span>或使用已有账号</span>
 
         <div class="form__group">
-          <!-- 登录邮箱 -->
+          <!-- 登录手机号 -->
           <input
-            type="email"
-            placeholder="邮箱"
-            v-model="signinEmail"
+            type="tel"
+            placeholder="手机号"
+            v-model="signinPhone"
           />
         </div>
         <div class="form__row">
@@ -130,6 +130,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { userApi } from '@/api';
 import { ElMessage } from 'element-plus';
+import { useUserStore } from '@/stores/user';
 
 // 容器与按钮引用
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -137,7 +138,7 @@ const overlayBtnRef = ref<HTMLButtonElement | null>(null);
 const router = useRouter();
 
 // 登录表单数据
-const signinEmail = ref('');
+const signinPhone = ref('');
 const signinPassword = ref('');
 const loginRole = ref<'user' | 'admin' | 'doctor'>('user');
 
@@ -184,56 +185,92 @@ const activateSignUp = () => {
   }
 };
 
-// 登录提交（在此对接你的 API 与路由）
+/* 登录提交：改为按响应体状态码进行分支处理，并使用 ElMessage 展示提示 */
 const onSignIn = async () => {
-  if (!signinEmail.value || !signinPassword.value) {
-    ElMessage.error('请输入邮箱和密码');
+  // 基础校验：手机号与密码必填
+  if (!signinPhone.value || !signinPassword.value) {
+    ElMessage.error('请输入手机号和密码');
     return;
   }
+  // 中国大陆手机号格式校验：以 1 开头，第2位为 3-9，后续 9 位数字
+  const phoneReg = /^1[3-9]\d{9}$/;
+  if (!phoneReg.test(signinPhone.value)) {
+    ElMessage.error('请输入有效的手机号');
+    return;
+  }
+
   try {
-    // API 的 login 函数需要 username，我们用 email 代替
-    // 改用 HttpOnly Cookie 后，浏览器会自动处理，前端无需接收和存储 token
-    await userApi.login({
-      username: signinEmail.value,
+    // 角色映射：管理员=0，医生=1，用户=2（提交给后端）
+    const roleMap: Record<'user' | 'admin' | 'doctor', number> = { admin: 0, doctor: 1, user: 2 };
+
+    const store = useUserStore();
+
+    // 1) 调用登录接口，拿到响应体（假设返回结构：{ code, msg, data }）
+    const loginResp = await userApi.login({
+      phone: signinPhone.value,
       password: signinPassword.value,
+      role: roleMap[loginRole.value]
     });
 
-    // localStorage.setItem('token', token); // 已废弃，Cookie 由浏览器自动管理
-    ElMessage.success('登录成功');
+    // 兼容不同封装：可能是 axios 响应（data.code）、也可能直接返回（code）
+    const code = loginResp?.data?.code ?? loginResp?.code;
+    const msg = loginResp?.data?.msg ?? loginResp?.msg ?? '';
 
-    const role = loginRole.value;
-    const pathMap: Record<'user' | 'admin' | 'doctor', string> = {
-      user: '/user',
-      admin: '/admin',
-      doctor: '/doctor',
-    };
-    await router.push(pathMap[role]);
-  } catch (error) {
-    console.error('Login failed:', error);
-    ElMessage.error('登录失败，请检查您的凭据');
+    // 2) 根据状态码分支处理，并统一弹出消息
+    if (code === 200) {
+      ElMessage.success(msg || '登录成功');
+
+      // 先写入最小用户态，确保路由守卫放行（基于用户选择的角色）
+      store.setUserInfo({ role: loginRole.value } as any);
+      // 登录成功后异步拉取用户信息并写入 Store（不影响跳转）
+      (async () => {
+        try {
+          const userInfoResp = await userApi.getUserInfo();
+          store.setUserInfo(userInfoResp.data);
+        } catch {
+          // 静默忽略拉取失败
+        }
+      })();
+
+      // 直接根据用户选择的角色进行跳转（不依赖用户信息返回）
+      // 统一后台入口：管理员/医生进入同一路径 /portal，由 RoleDashboard 根据角色动态呈现内容
+      const pathMap: Record<'user' | 'admin' | 'doctor', string> = {
+        user: '/client',
+        admin: '/portal',
+        doctor: '/portal'
+      };
+      // 延迟 1 秒后跳转
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await router.push(pathMap[loginRole.value]);
+    } else if (code === 401) {
+      // 未授权 / 认证失败（可能是用户不存在、角色不匹配、用户名或密码错误）
+      ElMessage.error(msg || '未授权或认证失败');
+    } else if (code === 403) {
+      // 禁止访问（用户账户状态异常）
+      ElMessage.error(msg || '用户账户状态异常');
+    } else if (code === 404) {
+      // 资源不存在（登录场景一般不会返回）
+      ElMessage.error(msg || '资源不存在');
+    } else if (code === 500) {
+      // 服务器内部错误
+      ElMessage.error(msg || '服务器内部错误');
+    } else {
+      // 其他未覆盖状态码
+      ElMessage.error(msg || '登录失败');
+    }
+  } catch (error: any) {
+    // 网络或非业务异常：展示后端返回的 msg 或通用文案
+    const backendMsg =
+      error?.response?.data?.msg ||
+      error?.data?.msg ||
+      error?.message;
+    ElMessage.error(backendMsg || '请求失败，请检查网络后重试');
   }
 };
 
 // 注册提交（在此对接你的 API）
 const onSignUp = async () => {
-  if (!signupName.value || !signupEmail.value || !signupPassword.value) {
-    ElMessage.error('请填写完整的注册信息');
-    return;
-  }
-  try {
-    // API 的 register 函数需要 username，我们用 name 代替
-    await userApi.register({
-      username: signupName.value,
-      email: signupEmail.value,
-      password: signupPassword.value,
-    });
-    ElMessage.success('注册成功！请登录。');
-    // 注册成功后，自动切换到登录面板
-    activateSignIn();
-  } catch (error) {
-    console.error('Signup failed:', error);
-    ElMessage.error('注册失败，该用户名或邮箱可能已被使用');
-  }
+  
 };
 
 // 忘记密码（可跳转到找回密码页）
@@ -248,346 +285,5 @@ const onForgotPassword = () => {
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 @import url("https://cdn.jsdelivr.net/npm/remixicon@3.4.0/fonts/remixicon.css");
 
-/* 主题色与基础变量（与原样式一致） */
-/* 变量迁移到 .container，避免 scoped 下 :root 失效 */
-
-/* 基础重置（作用域内仅影响本组件） */
-* {
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-}
-
-.container {
-  /* 将主题变量作用在组件根容器，保证本组件内任何元素都能读取 */
-  --primary-color: #27b397;
-  --text-dark: #0f172a;
-  --text-light: #94a3b8;
-  --extra-light: #ececec;
-  --white: #ffffff;
-
-  font-family: "Poppins", sans-serif; /* 组件内字体 */
-}
-
-/* 容器与布局 */
-.container {
-  height: 100vh;
-  position: relative;
-  background-color: var(--white);
-  overflow: hidden;
-}
-
-/* 表单容器公用 */
-.form__container {
-  position: absolute;
-  width: 60%;
-  height: 100%;
-  padding: 2rem;
-  transition: 0.6s ease-in-out;
-}
-
-/* 初始：注册侧隐藏，登录侧显示（与原始逻辑一致） */
-.signup__container {
-  opacity: 0;
-  z-index: 1;
-}
-
-.signin__container {
-  z-index: 2;
-}
-
-/* 表单布局 */
-form {
-  height: 100%;
-  max-width: 400px;
-  margin: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-form h1 {
-  font-size: 2.5rem;
-  color: var(--primary-color);
-}
-
-/* 社交按钮行 */
-.socials {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 2rem 0;
-}
-
-.socials a {
-  padding: 5px 12px;
-  text-decoration: none;
-  font-size: 1.5rem;
-  color: var(--text-dark);
-  border: 1px solid var(--text-light);
-  border-radius: 100%;
-}
-
-form span {
-  color: var(--text-light);
-  font-size: 0.9rem;
-}
-
-.form__group {
-  position: relative;
-  margin: 0.5rem 0;
-  width: 100%;
-}
-
-/* 限定输入框样式，避免影响 radio/checkbox 等 */
-.form__group input,
-.form__row input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: none;
-  outline: none;
-  font-size: 1rem;
-  background-color: var(--extra-light);
-  border-bottom: 1px solid var(--primary-color);
-}
-
-.forgot__password {
-  /* 放在密码输入右侧，保持单行 */
-  margin-left: 12px;
-  text-decoration: none;
-  font-size: 0.9rem;
-  color: var(--text-light);
-  border-bottom: 1px solid var(--text-light);
-  white-space: nowrap;
-}
-
-.form__container button {
-  padding: 0.75rem 4rem;
-  border: none;
-  outline: none;
-  font-size: 1rem;
-  color: var(--white);
-  border-radius: 2rem;
-  background-color: var(--primary-color);
-  cursor: pointer;
-}
-
-/* 登录角色单选组 */
-.role-group {
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-  gap: 16px;
-  margin: 8px 0 4px;
-  color: var(--text-dark);
-  user-select: none;
-}
-.role-group label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-.role-group input[type="radio"] {
-  cursor: pointer;
-}
-
-/* 单行展示密码输入与忘记密码 */
-.form__row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: relative; /* 作为绝对定位参照 */
-}
-/* 原生输入框仍保持你的默认外观，仅增加右侧内边距避免文字覆盖 */
-.form__row .pwd-input {
-  flex: 1;
-  padding-right: 88px; /* 为空出“忘记密码？”点击区域 */
-}
-/* 将“忘记密码？”放到输入框内部右侧 */
-.forgot__inside {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  color: var(--text-light);
-  text-decoration: none;
-  cursor: pointer;
-  line-height: 1;
-  background: transparent; /* 不影响输入框背景 */
-  padding: 2px 0;
-}
-.forgot__inside:hover {
-  color: var(--primary-color);
-}
-
-/* 角色标签：均匀分布，保持与输入框同宽 */
-.role-tags {
-  width: 100%;
-  display: flex;
-  justify-content: space-around; /* 均匀分布，两端留有间距 */
-  align-items: center;
-  margin: 16px 0;
-}
-/* 标签保持自适应宽度 */
-.role-tags :deep(.el-tag) {
-  cursor: pointer;
-}
-/* 单个选项：让单选按钮和标签靠在一起，并垂直居中 */
-.tag-option {
-  display: inline-flex;
-  align-items: center;   /* 垂直居中对齐单选与标签 */
-  gap: 4px;              /* 减小单选按钮和标签之间的间距 */
-  user-select: none;
-  cursor: pointer;
-}
-
-/* 使用 accent-color 设置单选按钮颜色，恢复浏览器默认外观 */
-.tag-option input[type="radio"] {
-  cursor: pointer;
-}
-.tag-option.success input[type="radio"] { accent-color: var(--el-color-success); }
-.tag-option.primary input[type="radio"] { accent-color: var(--el-color-primary); }
-.tag-option.info input[type="radio"]    { accent-color: var(--el-color-info); }
-
-/* 右侧覆盖容器（背景图、动效与切换） */
-.overlay__container {
-  position: absolute;
-  top: 0;
-  left: 60%;
-  height: 100%;
-  width: 40%;
-  overflow: hidden;
-  transition: transform 0.6s ease-in-out;
-  z-index: 10;
-}
-
-.overlay__wrapper {
-  /* 将相对路径改为别名路径，适配 Vite 构建 */
-  background: url("@/assets/57-bg.png");
-  background-position: center center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  position: relative;
-  color: var(--white);
-  left: -150%;
-  height: 100%;
-  width: 250%;
-  transition: transform 0.6s ease-in-out;
-}
-
-.overlay__panel {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  padding: 4rem;
-  text-align: center;
-  height: 100%;
-  width: 40%;
-  transition: transform 0.6s ease-in-out;
-}
-
-.overlay__panel__left {
-  right: 60%;
-  transform: translateX(-12%);
-}
-
-.overlay__panel__right {
-  right: 0;
-  transform: translateX(0);
-}
-
-.overlay__panel h1 {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-}
-
-.overlay__panel p {
-  max-width: 350px;
-  margin: 0 auto;
-  line-height: 2rem;
-}
-
-.overlay__panel button {
-  /* 右侧覆盖区按钮：需要白色描边以在深色背景上清晰可见 */
-  padding: 0.75rem 4rem;
-  margin-top: 2rem;
-  border: 1px solid var(--white);
-  outline: none;
-  font-size: 1rem;
-  color: var(--white);
-  border-radius: 2rem;
-  background-color: transparent;
-}
-
-/* 中间切换按钮 */
-/* 隐藏中间装饰按钮，避免与右侧面板按钮重叠产生“双边框” */
-#overlayBtn {
-  display: none;
-}
-
-/* 切换至注册视图时的整体位移动画（类名与原始保持一致） */
-.right__panel__active .overlay__container {
-  transform: translateX(-150%);
-}
-
-.right__panel__active .overlay__wrapper {
-  transform: translateX(50%);
-}
-
-.right__panel__active .overlay__panel__left {
-  transform: translateX(25%);
-}
-
-.right__panel__active .overlay__panel__right {
-  transform: translateX(35%);
-}
-
-.right__panel__active .signin__container {
-  transform: translateX(20%);
-  opacity: 0;
-}
-
-.right__panel__active .signup__container {
-  transform: translateX(65%);
-  opacity: 1;
-  z-index: 5;
-  animation: show 0.6s;
-}
-
-/* 渐显动画（与原文件一致） */
-@keyframes show {
-  0%,
-  50% {
-    opacity: 0;
-    z-index: 1;
-  }
-  51%,
-  100% {
-    opacity: 1;
-    z-index: 5;
-  }
-}
-
-/* 按钮放大动画 */
-.scale__btn-animation {
-  animation: scale-animation 0.6s;
-}
-
-@keyframes scale-animation {
-  0% {
-    width: 10rem;
-  }
-  50% {
-    width: 20rem;
-  }
-  100% {
-    width: 10rem;
-  }
-}
+@import '../styles/login.scss'
 </style>

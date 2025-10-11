@@ -5,7 +5,8 @@
  */
 export interface ApiResponse<T = any> {
   code: number
-  message: string
+  /** 后端返回的消息字段为 msg，保持与后端一致 */
+  msg: string
   data: T
 }
 
