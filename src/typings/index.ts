@@ -6,21 +6,3 @@ export interface UserInfo {
   avatar?: string
   role: string
 }
-
-export interface ApiResponse<T = any> {
-  code: number
-  message: string
-  data: T
-}
-
-export interface PageParams {
-  page: number
-  pageSize: number
-}
-
-export interface PageResponse<T = any> {
-  list: T[]
-  total: number
-  page: number
-  pageSize: number
-}
