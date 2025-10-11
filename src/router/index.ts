@@ -4,7 +4,7 @@ import ClientHome from '@/views/ClientSide/ClientHome.vue'
 import AdminHome from '@/views/RoleDashboard/AdminSide/AdminHome.vue'
 import DoctorHome from '@/views/RoleDashboard/DoctorSide/DoctorHome.vue'
 import RoleDashboard from '@/views/RoleDashboard/RoleDashboard.vue'
-
+import Error404 from '@/views/CommonErrors/Error404.vue'
 
 const routes: RouteRecordRaw[] = [
   // 根路径重定向到登录页
@@ -44,9 +44,50 @@ const routes: RouteRecordRaw[] = [
         name: 'DoctorHome',
         component: DoctorHome,
         meta: { title: '医生首页', roles: ['doctor'] }
-      }
+      },
+
+      // 管理员端菜单占位子路由（相对路径，渲染到 RoleDashboard 的 router-view）
+      { path: 'admin/dashboard', component: Error404, meta: { roles: ['admin'], title: '仪表盘' } },
+      { path: 'admin/hospital-overview', component: Error404, meta: { roles: ['admin'], title: '医院情况' } },
+
+      { path: 'admin/doctor-manage', component: Error404, meta: { roles: ['admin'], title: '医生管理' } },
+      { path: 'admin/patient-manage', component: Error404, meta: { roles: ['admin'], title: '患者管理' } },
+      { path: 'admin/user-manage', component: Error404, meta: { roles: ['admin'], title: '用户管理' } },
+
+      { path: 'admin/drug-catalog', component: Error404, meta: { roles: ['admin'], title: '药品目录' } },
+      { path: 'admin/charge-items', component: Error404, meta: { roles: ['admin'], title: '收费项' } },
+      { path: 'admin/diagnosis-codes', component: Error404, meta: { roles: ['admin'], title: '诊断编码' } },
+      { path: 'admin/exam-items', component: Error404, meta: { roles: ['admin'], title: '检查项目' } },
+      { path: 'admin/price-change-approval', component: Error404, meta: { roles: ['admin'], title: '价格变动走审批' } },
+
+      { path: 'admin/department-maintain', component: Error404, meta: { roles: ['admin'], title: '科室维护' } },
+      { path: 'admin/doctor-schedule', component: Error404, meta: { roles: ['admin'], title: '医生排班' } },
+      { path: 'admin/holiday-schedule', component: Error404, meta: { roles: ['admin'], title: '节假日排班' } },
+      { path: 'admin/outpatient-slots-preview', component: Error404, meta: { roles: ['admin'], title: '门诊号源预览' } },
+
+      // 医生端菜单占位子路由（相对路径，渲染到 RoleDashboard 的 router-view）
+      { path: 'doctor/patient-list', component: Error404, meta: { roles: ['doctor'], title: '患者列表' } },
+      { path: 'doctor/emr', component: Error404, meta: { roles: ['doctor'], title: '电子病历' } },
+      { path: 'doctor/visit-records', component: Error404, meta: { roles: ['doctor'], title: '就诊记录' } },
+      { path: 'doctor/history-search', component: Error404, meta: { roles: ['doctor'], title: '历史诊疗查询' } },
+      { path: 'doctor/e-prescription', component: Error404, meta: { roles: ['doctor'], title: '电子处方' } },
+      { path: 'doctor/exam-apply', component: Error404, meta: { roles: ['doctor'], title: '检查/检验申请' } },
+      { path: 'doctor/diagnosis', component: Error404, meta: { roles: ['doctor'], title: '诊断记录' } },
+      { path: 'doctor/medical-orders', component: Error404, meta: { roles: ['doctor'], title: '医嘱管理' } },
+      { path: 'doctor/registration', component: Error404, meta: { roles: ['doctor'], title: '患者挂号信息' } },
+      { path: 'doctor/appointment-review', component: Error404, meta: { roles: ['doctor'], title: '预约审核' } },
+      { path: 'doctor/schedule', component: Error404, meta: { roles: ['doctor'], title: '医生排班查看' } },
+      { path: 'doctor/statistics', component: Error404, meta: { roles: ['doctor'], title: '患者数据统计可视化' } },
+      { path: 'doctor/profile', component: Error404, meta: { roles: ['doctor'], title: '医生个人信息' } },
+      { path: 'doctor/account', component: Error404, meta: { roles: ['doctor'], title: '账户设置' } },
+      { path: 'doctor/change-password', component: Error404, meta: { roles: ['doctor'], title: '密码修改' } },
+
+      // 子级兜底：当 /portal 下未匹配任何子路由时，在 RoleDashboard 的 router-view 内显示 404
+      { path: ':catchAll(.*)', component: Error404, meta: { title: '未找到页面' } }
     ]
-  }
+  },
+
+
 ]
 
 const router = createRouter({
