@@ -6,6 +6,7 @@ import router from './router'
 // 引入 Element Plus 组件库及样式
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import 'element-plus/theme-chalk/dark/css-vars.css' // 引入暗色主题变量（跟随 html.dark 自动切换）
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 // 引入 Pinia 状态管理

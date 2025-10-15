@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory, RouteRecordRaw, NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import Login from '@/views/Login.vue'
 import ClientHome from '@/views/ClientSide/ClientHome.vue'
-import AdminHome from '@/views/RoleDashboard/AdminSide/AdminHome.vue'
-import DoctorHome from '@/views/RoleDashboard/DoctorSide/DoctorHome.vue'
+
+
 import RoleDashboard from '@/views/RoleDashboard/RoleDashboard.vue'
 import Error404 from '@/views/CommonErrors/Error404.vue'
 
@@ -36,13 +36,13 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'admin',
         name: 'AdminHome',
-        component: AdminHome,
+        component: Error404,
         meta: { title: '管理员首页', roles: ['admin'] }
       },
       {
         path: 'doctor',
         name: 'DoctorHome',
-        component: DoctorHome,
+        component: Error404,
         meta: { title: '医生首页', roles: ['doctor'] }
       },
 
@@ -50,9 +50,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'admin/dashboard', component: Error404, meta: { roles: ['admin'], title: '仪表盘' } },
       { path: 'admin/hospital-overview', component: Error404, meta: { roles: ['admin'], title: '医院情况' } },
 
-      { path: 'admin/doctor-manage', component: Error404, meta: { roles: ['admin'], title: '医生管理' } },
-      { path: 'admin/patient-manage', component: Error404, meta: { roles: ['admin'], title: '患者管理' } },
-      { path: 'admin/user-manage', component: Error404, meta: { roles: ['admin'], title: '用户管理' } },
+      { path: 'admin/doctor-manage', component: () => import('@/views/RoleDashboard/AdminSide/DoctorManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生管理' } },
+      { path: 'admin/patient-manage', component: () => import('@/views/RoleDashboard/AdminSide/PatientManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '患者管理' } },
+      { path: 'admin/user-manage', component: () => import('@/views/RoleDashboard/AdminSide/UserManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '用户管理' } },
 
       { path: 'admin/drug-catalog', component: Error404, meta: { roles: ['admin'], title: '药品目录' } },
       { path: 'admin/charge-items', component: Error404, meta: { roles: ['admin'], title: '收费项' } },
@@ -87,6 +87,7 @@ const routes: RouteRecordRaw[] = [
     ]
   },
 
+  { path: '/:pathMatch(.*)*', name: 'NotFoundGlobal', component: Error404, meta: { title: '未找到页面' } }
 
 ]
 
