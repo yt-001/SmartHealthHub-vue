@@ -104,9 +104,6 @@
       <!-- 新增：手机号单独成列 -->
       <el-table-column prop="phone" label="手机号" min-width="150" />
 
-      <!-- 新增：擅长领域 -->
-      <el-table-column prop="specialty" label="擅长领域" min-width="180" show-overflow-tooltip />
-
       <!-- 新增：执业证书编号 -->
       <el-table-column prop="qualificationNo" label="执业证书编号" min-width="200" show-overflow-tooltip />
 
@@ -127,7 +124,7 @@
 
       <!-- 空数据插槽：区分异常与正常无数据 -->
       <template #empty>
-        <div class="table-empty">
+        <div v-if="!loading" class="table-empty">
           {{ fetchError ? '数据异常，请稍后重试' : '暂无数据' }}
         </div>
       </template>
@@ -230,6 +227,8 @@ const buildDoctorPayload = (q: DoctorListParams & { createdRange?: [string, stri
 }
 
 const fetchList = async () => {
+  // 防止并发请求：如果当前在加载，忽略本次触发
+  if (loading.value) return
   loading.value = true
   fetchError.value = false
   const start = Date.now()
@@ -240,6 +239,8 @@ const fetchList = async () => {
     const res = await doctorApi.getDoctorList(payload)
     const data = (res as any)?.data?.list ? (res as any).data : (res as any)
 
+    const elapsed = Date.now() - start
+    if (elapsed < 1000) await sleep(1000 - elapsed)
     list.value = (data.list || []) as DoctorItem[]
     total.value = data.total || 0
   } catch (e) {
@@ -247,10 +248,9 @@ const fetchList = async () => {
     fetchError.value = true
     list.value = []
     total.value = 0
-  } finally {
-    // 保证最少 0.8s 的加载体验
     const elapsed = Date.now() - start
-    if (elapsed < 800) await sleep(800 - elapsed)
+    if (elapsed < 1000) await sleep(1000 - elapsed)
+  } finally {
     loading.value = false
   }
 }
