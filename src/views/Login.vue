@@ -131,6 +131,7 @@ import { useRouter } from 'vue-router';
 import { userApi } from '@/api';
 import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/stores/user';
+import type { ApiResponse } from '@/api/types';
 
 // 容器与按钮引用
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -210,11 +211,10 @@ const onSignIn = async () => {
       phone: signinPhone.value,
       password: signinPassword.value,
       role: roleMap[loginRole.value]
-    });
+    }) as ApiResponse;
 
-    // 兼容不同封装：可能是 axios 响应（data.code）、也可能直接返回（code）
-    const code = loginResp?.data?.code ?? loginResp?.code;
-    const msg = loginResp?.data?.msg ?? loginResp?.msg ?? '';
+    // 使用统一返回体类型，直接解构状态码与消息
+    const { code, msg } = loginResp;
 
     // 2) 根据状态码分支处理，并统一弹出消息
     if (code === 200) {
@@ -222,15 +222,17 @@ const onSignIn = async () => {
 
       // 先写入最小用户态，确保路由守卫放行（基于用户选择的角色）
       store.setUserInfo({ role: loginRole.value } as any);
-      // 登录成功后异步拉取用户信息并写入 Store（不影响跳转）
-      (async () => {
-        try {
-          const userInfoResp = await userApi.getUserInfo();
-          store.setUserInfo(userInfoResp.data);
-        } catch {
-          // 静默忽略拉取失败
+
+      // 登录成功立即执行一次令牌检查，若有效则写入用户信息到 Store
+      try {
+        const checkResp = await userApi.check() as ApiResponse;
+        if (checkResp.code === 200 && checkResp.data) {
+          // 将后端返回的完整用户信息写入 Store
+          store.setUserInfo(checkResp.data as any);
         }
-      })();
+      } catch {
+        // 检查失败不影响后续跳转（可能是后端暂时不可达）
+      }
 
       // 直接根据用户选择的角色进行跳转（不依赖用户信息返回）
       // 统一后台入口：管理员/医生进入同一路径 /portal，由 RoleDashboard 根据角色动态呈现内容
@@ -270,7 +272,7 @@ const onSignIn = async () => {
 
 // 注册提交（在此对接你的 API）
 const onSignUp = async () => {
-  
+
 };
 
 // 忘记密码（可跳转到找回密码页）

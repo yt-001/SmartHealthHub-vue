@@ -23,11 +23,30 @@ service.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 })
 
 /**
- * 响应拦截（简单自动刷新）：
- * - 成功：返回 response.data
- * - 401：刷新一次并重试；失败抛错
- * - 其他错误：直接抛错
+ * 刷新令牌队列（基于 HttpOnly Cookie，无需携带 Authorization）
+ * - 仅当出现 401 时触发 refresh，一次只发起一个刷新请求
+ * - 其他失败状态码按原样抛出
  */
+let refreshPromise: Promise<any> | null = null
+const doRefresh = () => {
+  if (!refreshPromise) {
+    // 使用裸 axios 避免再次进入拦截器造成循环
+    refreshPromise = axios.post(
+      '/auth/refresh',
+      {},
+      {
+        baseURL: service.defaults.baseURL,
+        withCredentials: true,
+        headers: { 'Content-Type': 'application/json;charset=UTF-8' }
+      }
+    ).finally(() => {
+      // 无论成功失败，都释放占位；失败时由调用方处理
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
+}
+
 service.interceptors.response.use(
   (response: AxiosResponse) => {
     // 成功：直接返回后端统一响应结构（code/msg/data）
@@ -35,29 +54,35 @@ service.interceptors.response.use(
   },
   async (error) => {
     const status = error?.response?.status
-    const originalRequest = error?.config
+    const originalRequest = error?.config as any
 
-    // 仅当 401 且未重试过时，执行一次刷新并重试
-    if (status === 401 && originalRequest && !originalRequest._retry) {
-      ;(originalRequest as any)._retry = true
+    // 若原请求不存在，或是刷新/登录/登出本身，直接抛出
+    const url: string = originalRequest?.url || ''
+    const isAuthPath =
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/login') ||
+      url.includes('/auth/logout')
+
+    // 仅处理 401（或部分后端用 419/498 表示过期），且不是认证路径，且未重试过
+    const isExpired = status === 401 || status === 419 || status === 498
+    if (isExpired && originalRequest && !isAuthPath && !originalRequest._retry) {
+      originalRequest._retry = true
       try {
-        const { useUserStore } = await import('@/stores/user')
-        const store = useUserStore()
-        // 刷新令牌（基于 Cookie 会话），刷新成功后重试原请求
-        await store.refreshAccessToken()
+        await doRefresh()
+        // 刷新成功：重试原请求
         return service.request(originalRequest)
-      } catch {
-        // 刷新失败：清理用户信息，让页面自行跳转登录或提示
+      } catch (e) {
+        // 刷新失败：清理用户状态，抛错
         try {
           const { useUserStore } = await import('@/stores/user')
           const store = useUserStore()
-          store.clearUser()
+          store.clearUser?.()
         } catch {}
-        return Promise.reject(error)
+        return Promise.reject(e || error)
       }
     }
 
-    // 非 401 或已重试过：直接抛出错误，由页面决定展示
+    // 其他情况：直接抛出
     return Promise.reject(error)
   }
 )

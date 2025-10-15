@@ -107,10 +107,28 @@ router.beforeEach(async (to: RouteLocationNormalized, _from: RouteLocationNormal
   const { useUserStore } = await import('@/stores/user')
   const store = useUserStore()
 
+  // 若刷新首跳时本地还未有用户信息，仅等待启动期的 bootstrap（不会重复请求）
+  if (!store.userInfo) {
+    try {
+      await store.bootstrap()
+    } catch {
+      /* 忽略，后续逻辑按未登录处理 */
+    }
+  }
+
   // 已登录判定：依赖已拉取的用户信息（基于 Cookie 的会话）
   const isAuthed = !!store.userInfo
-  // 从后端用户信息中读取角色（建议后端返回 'user' | 'doctor' | 'admin'）
-  const role = (store.userInfo?.role || '') as 'user' | 'doctor' | 'admin' | ''
+  // 规范化角色：后端可能返回 0/1/2 或 'user'/'admin'/'doctor'
+  const rawRole = (store.userInfo as any)?.role
+  const roleMap: Record<string | number, 'user' | 'doctor' | 'admin'> = {
+    0: 'admin',
+    1: 'doctor',
+    2: 'user',
+    user: 'user',
+    admin: 'admin',
+    doctor: 'doctor'
+  }
+  const role = (roleMap[rawRole] ?? '') as 'user' | 'doctor' | 'admin' | ''
 
   // 工具函数：根据角色跳到各自首页
   const redirectHomeByRole = (r: 'user' | 'doctor' | 'admin' | '') => {
@@ -123,14 +141,16 @@ router.beforeEach(async (to: RouteLocationNormalized, _from: RouteLocationNormal
   // 当前路由要求的角色集合（如果没有要求，表示公共路由）
   const requiredRoles = (to.meta?.roles as string[] | undefined)
 
-  // 3) 已登录访问登录页：根据角色重定向到对应入口
+  // 3) 已登录访问登录页：优先跳回 redirect，再按角色重定向到对应入口
   if (isAuthed && to.path === '/login') {
+    const redirect = (to.query?.redirect as string) || ''
+    if (redirect) return next(redirect)
     return redirectHomeByRole(role)
   }
 
-  // 4) 未登录访问受限路由：统一跳转登录
+  // 4) 未登录访问受限路由：统一跳转登录，并带上原路径以便回跳
   if (!isAuthed && requiredRoles && requiredRoles.length > 0) {
-    return next('/login')
+    return next({ path: '/login', query: { redirect: to.fullPath } })
   }
 
   // 5) 已登录但角色不匹配：重定向到角色首页

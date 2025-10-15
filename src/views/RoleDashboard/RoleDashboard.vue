@@ -56,11 +56,13 @@
         <!-- 头像下拉：个人中心 / 设置 / 退出登录 -->
         <el-dropdown trigger="click" @command="onUserCommand">
           <span class="el-dropdown-link" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-            <el-avatar :size="28" :src="(store.userInfo as any)?.avatar || ''">
+            <!-- 头像：严格使用后端返回的 avatarUrl -->
+            <el-avatar :size="28" :src="(store.userInfo as any)?.avatarUrl || ''">
               <!-- 没有头像时显示用户图标 -->
               <el-icon v-if="!(store.userInfo as any)?.avatar"><UserFilled /></el-icon>
             </el-avatar>
-            <span class="username">{{ (store.userInfo as any)?.nickname || (store.userInfo as any)?.name || '用户' }}</span>
+            <!-- 显示名：realName 优先，其次 username -->
+            <span class="username">{{ (store.userInfo as any)?.realName || (store.userInfo as any)?.username || '用户' }}</span>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -70,8 +72,6 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-
-        
       </div>
     </el-header>
 
@@ -153,6 +153,8 @@ import adminMenu from '@/router/menus/adminMenu'
 import type { DoctorMenuItem } from '@/router/menus/doctorMenu'
 import type { AdminMenuItem } from '@/router/menus/adminMenu'
 import { Search, UserFilled, Sunny, Moon, Grid } from '@element-plus/icons-vue'
+import { logout as apiLogout } from '@/api/modules/user'
+import { ElLoading, ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,11 +194,36 @@ const onSearch = () => {
 }
 
 // 处理头像下拉菜单命令
-const onUserCommand = (cmd: string) => {
+/* 简单的延迟函数（中文注释） */
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+const onUserCommand = async (cmd: string) => {
   if (cmd === 'logout') {
-    // 清空本地用户并回登录页
+    // 进入全屏加载状态
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在退出...',
+      background: 'rgba(0, 0, 0, 0.3)'
+    })
+    try {
+      // 调用后端登出
+      await apiLogout()
+    } catch (e) {
+      // 即便失败也继续前端清理，避免卡死
+      console.warn('退出登录接口失败（忽略并继续本地清理）：', e)
+    }
+    // 停留 1 秒（加载态）
+    await sleep(1000)
+    // 关闭加载
+    loading.close()
+    // 成功提示
+    ElMessage.success('退出登录成功')
+    // 提示展示 1 秒
+    await sleep(1000)
+    // 清空本地并跳转登录
     store.clearUser()
     router.replace('/login')
+    return
   } else if (cmd === 'profile') {
     router.push('/portal/profile') // 若无路由将落到 404
   } else if (cmd === 'settings') {
@@ -242,10 +269,13 @@ const getFirstMenuPath = (): string | null => {
 }
 
 // 首次进入 /portal 时进行跳转
-onMounted(() => {
-  // 1) /portal 按角色跳转
+onMounted(async () => {
+  // 主题应用
+  applyTheme()
+
+  // C) /portal 按角色跳转
   redirectByRoleIfNeeded()
-  // 2) 进入 /portal/admin 或 /portal/doctor 时，若无具体子路由，默认跳转到菜单第一项
+  // D) 进入 /portal/admin 或 /portal/doctor 时，若无具体子路由，默认跳转到菜单第一项
   if (route.path === '/portal/admin' || route.path === '/portal/doctor') {
     const p = getFirstMenuPath()
     if (p) router.replace(p)
