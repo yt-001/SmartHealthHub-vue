@@ -53,6 +53,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'admin/doctor-manage', component: () => import('@/views/RoleDashboard/AdminSide/DoctorManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生管理' } },
       { path: 'admin/patient-manage', component: () => import('@/views/RoleDashboard/AdminSide/PatientManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '患者管理' } },
       { path: 'admin/user-manage', component: () => import('@/views/RoleDashboard/AdminSide/UserManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '用户管理' } },
+      { path: 'admin/case-archive-manage', component: () => import('@/views/RoleDashboard/AdminSide/CaseArchiveManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '病例档案管理' } },
 
       { path: 'admin/drug-catalog', component: Error404, meta: { roles: ['admin'], title: '药品目录' } },
       { path: 'admin/charge-items', component: Error404, meta: { roles: ['admin'], title: '收费项' } },

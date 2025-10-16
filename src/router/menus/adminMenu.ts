@@ -26,6 +26,7 @@ const adminMenu: MenuItem[] = [
       { title: "医生管理", path: "/portal/admin/doctor-manage", icon: "User" },
       { title: "患者管理", path: "/portal/admin/patient-manage", icon: "UserFilled" },
       { title: "用户管理", path: "/portal/admin/user-manage", icon: "User" },
+      { title: "病例档案管理", path: "/portal/admin/case-archive-manage", icon: "Document" },
     ],
   },
   {
