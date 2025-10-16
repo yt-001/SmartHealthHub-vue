@@ -5,6 +5,8 @@
 import request from '../http'
 import type { PageResponse } from '../types'
 import type { DoctorItem } from '../types/doctorTypes'
+import type { ApiResponse } from '@/api/types'
+import type { DoctorProfilesVO } from '@/api/types/doctorTypes'
 
 /**
  * 获取医生分页列表
@@ -23,4 +25,13 @@ import type { DoctorItem } from '../types/doctorTypes'
  */
 export const getDoctorList = (payload: any): Promise<PageResponse<DoctorItem>> => {
   return request.post('/admin/doctors/page', payload) as Promise<PageResponse<DoctorItem>>
+}
+
+/**
+ * 获取当前医生档案信息（占位路径，后端确定后可调整）
+ * 默认返回 DoctorProfilesVO
+ */
+export const getDoctorProfile = async (userId: number): Promise<ApiResponse<DoctorProfilesVO>> => {
+  // 实际接口：GET /doctor/profiles/{userId}
+  return request.get(`/doctor/profiles/${userId}`) as Promise<ApiResponse<DoctorProfilesVO>>
 }

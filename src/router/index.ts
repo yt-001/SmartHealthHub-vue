@@ -83,6 +83,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'doctor/account', component: Error404, meta: { roles: ['doctor'], title: '账户设置' } },
       { path: 'doctor/change-password', component: Error404, meta: { roles: ['doctor'], title: '密码修改' } },
 
+      { path: 'profile', component: () => import('@/views/RoleDashboard/Profile.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin', 'doctor'], title: '个人中心' } },
+
       // 子级兜底：当 /portal 下未匹配任何子路由时，在 RoleDashboard 的 router-view 内显示 404
       { path: ':catchAll(.*)', component: Error404, meta: { title: '未找到页面' } }
     ]

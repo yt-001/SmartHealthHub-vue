@@ -31,6 +31,29 @@ export interface DoctorItem {
 import type { BasePageQuery } from '../types'
 
 /** 列表查询参数（可按需继续扩展，字段名与后端约定保持一致或在 API 层做转换） */
+/** 医生档案信息（医生个人详情展示 VO），与后端 DoctorProfilesVO 对齐 */
+export interface DoctorProfilesVO {
+  /** 科室ID */
+  deptId: number | null
+  /** 职称 */
+  title: string | null
+  /** 擅长领域 */
+  specialty: string | null
+  /** 执业证书编号 */
+  qualificationNo: string | null
+  /** 个人简介 */
+  bio: string | null
+  /** 工作班次 */
+  workShift: string | null
+  /** 诊室编号 */
+  officeRoom: string | null
+  /** 创建时间 */
+  createTime: string | null
+  /** 更新时间 */
+  updateTime: string | null
+}
+
+/** 列表查询参数（可按需继续扩展，字段名与后端约定保持一致或在 API 层做转换） */
 export interface DoctorListParams extends BasePageQuery {
   /** 关键字模糊搜索（对应 BaseQuery.keyword） */
   keyword?: string

@@ -42,3 +42,15 @@ export const logout = async (): Promise<ApiResponse<void>> => {
   // 使用 POST 语义化登出；若后端是 GET，请告知我调整
   return request.post('/auth/logout', {}) as Promise<ApiResponse<void>>
 }
+
+/**
+ * 更新用户信息（仅提交有变化的字段；页面侧已做 diff）
+ * 协议：POST /user/updateProfile
+ * 入参：{ id: number, ...变化字段 }
+ * 返回：void 或更新后的用户信息（视后端而定）
+ * 注意：后端路径未确定时可先占位，后续再调整
+ */
+export const updateProfile = async (data: Record<string, any>): Promise<ApiResponse<void>> => {
+  // 这里默认使用 JSON 提交；http.ts 已处理 baseURL 与拦截器
+  return request.post('/user/updateProfile', data) as Promise<ApiResponse<void>>
+}
