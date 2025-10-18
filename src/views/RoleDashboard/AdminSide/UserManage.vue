@@ -16,29 +16,45 @@
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="query.role" placeholder="全部角色" clearable class="form-select">
-            <el-option label="管理员" :value="1" />
-            <el-option label="医生" :value="2" />
-            <el-option label="患者" :value="3" />
+            <el-option label="管理员" :value="0" />
+            <el-option label="医生" :value="1" />
+            <el-option label="患者" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部状态" clearable class="form-select">
             <el-option label="正常" :value="0" />
             <el-option label="锁定" :value="1" />
+            <el-option label="未激活" :value="2" />
+            <el-option label="已注销" :value="3" />
           </el-select>
         </el-form-item>
 
         <!-- 高级筛选 -->
         <template v-if="advancedOpen">
-          <el-form-item label="创建时间">
+          <el-form-item label="性别">
+            <el-select v-model="query.gender" placeholder="全部性别" clearable class="form-select">
+              <el-option label="男" value="M" />
+              <el-option label="女" value="F" />
+              <el-option label="其他" value="O" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="开始时间">
             <el-date-picker
-              v-model="query.createdRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
+              v-model="query.createdStart"
+              type="date"
+              placeholder="开始日期"
               value-format="YYYY-MM-DD"
-              class="form-select"
+              class="form-select w240"
+            />
+          </el-form-item>
+          <el-form-item label="结束时间">
+            <el-date-picker
+              v-model="query.createdEnd"
+              type="date"
+              placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              class="form-select w240"
             />
           </el-form-item>
         </template>
@@ -137,9 +153,11 @@ interface QueryState {
   username?: string
   realName?: string
   phone?: string
-  role?: 1 | 2 | 3
-  status?: 0 | 1
-  createdRange?: [string, string] | []
+  role?: 0 | 1 | 2
+  gender?: 'M' | 'F' | 'O'
+  status?: 0 | 1 | 2 | 3
+  createdStart?: string
+  createdEnd?: string
 }
 
 const defaultQuery: QueryState = {
@@ -149,14 +167,15 @@ const defaultQuery: QueryState = {
   realName: '',
   phone: '',
   role: undefined,
+  gender: undefined,
   status: undefined,
-  createdRange: []
+  createdStart: undefined,
+  createdEnd: undefined
 }
 
 const query = ref<QueryState>({ ...defaultQuery })
 
 const buildUserPayload = (q: QueryState) => {
-  const [createTimeStart, createTimeEnd] = (Array.isArray(q.createdRange) ? q.createdRange : []) as [string?, string?]
   return {
     pageNum: q.page,
     pageSize: q.pageSize,
@@ -167,9 +186,10 @@ const buildUserPayload = (q: QueryState) => {
       realName: q.realName ?? '',
       phone: q.phone ?? '',
       role: typeof q.role === 'number' ? q.role : null,
+      gender: q.gender ?? '',
       status: typeof q.status === 'number' ? q.status : null,
-      createTimeStart: createTimeStart ?? '',
-      createTimeEnd: createTimeEnd ?? ''
+      createdStart: q.createdStart ?? '',
+      createdEnd: q.createdEnd ?? ''
     }
   }
 }

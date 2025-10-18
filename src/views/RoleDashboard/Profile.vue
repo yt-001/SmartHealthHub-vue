@@ -91,8 +91,8 @@
         <el-descriptions-item label="工作班次">{{ doctorProfile?.workShift ?? '-' }}</el-descriptions-item>
         <el-descriptions-item label="诊室编号">{{ doctorProfile?.officeRoom ?? '-' }}</el-descriptions-item>
         <el-descriptions-item :span="isNarrow ? 1 : 2" label="个人简介">{{ doctorProfile?.bio ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="认证起始日期">{{ doctorProfile?.createTime ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ doctorProfile?.updateTime ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="认证起始日期">{{ doctorProfile?.createdAt ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ doctorProfile?.updatedAt ?? '-' }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 

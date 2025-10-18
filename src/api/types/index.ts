@@ -6,26 +6,35 @@
  * - 为兼容现有模块，保留 PageParams / PageResponse 的导出别名
  */
 
-/** 基础查询（可扩展公共筛选字段） */
+/** 基础查询（可扩展公共筛选字段，使用范围式命名） */
 export interface BaseQuery {
-  /** 关键字（可选，约定为通用模糊匹配字段名） */
-  keyword?: string
-  /** 起始时间（可选，ISO 字符串或时间戳） */
-  beginTime?: string | number
-  /** 结束时间（可选，ISO 字符串或时间戳） */
-  endTime?: string | number
+  /** 创建时间起始（yyyy-MM-dd） */
+  createdStart?: string
+  /** 创建时间结束（yyyy-MM-dd） */
+  createdEnd?: string
+  /** 更新时间起始（yyyy-MM-dd） */
+  updatedStart?: string
+  /** 更新时间结束（yyyy-MM-dd） */
+  updatedEnd?: string
 }
 
-/** 分页查询基础类（业务查询入参建议继承它） */
-export interface BasePageQuery extends BaseQuery {
-  /** 页码，从 1 开始 */
-  page: number
+/** 分页查询基础类（与后端 PageParam 对齐：pageNum/pageSize/sort/query） */
+export interface BasePageQuery<T = any> {
+  /*---------- 分页必备 ----------*/
+  /** 第几页（从1开始，前端友好） */
+  pageNum: number
   /** 每页条数 */
   pageSize: number
+
+  /*---------- 排序 ----------*/
   /** 排序字段（可选） */
   sortField?: string
-  /** 排序方向（可选） */
-  sortOrder?: 'asc' | 'desc'
+  /** 排序方向（与后端 Sort.Direction 一致，默认 DESC） */
+  sortDirection?: 'ASC' | 'DESC'
+
+  /*---------- 业务条件 ----------*/
+  /** 真正的查询条件，泛型隔离 */
+  query?: BaseQuery & T
 }
 
 /** 统一响应结构（与后端约定：code/msg/data） */
@@ -53,5 +62,5 @@ export type ID = number | string
  * - PageParams 等价于 BasePageQuery
  * - PageResponse<T> 等价于 PageResult<T>
  */
-export type PageParams = BasePageQuery
+export type PageParams = BasePageQuery<any>
 export type PageResponse<T = any> = PageResult<T>

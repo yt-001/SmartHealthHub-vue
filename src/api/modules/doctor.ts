@@ -16,12 +16,12 @@ import type { DoctorProfilesVO } from '@/api/types/doctorTypes'
  */
 /**
  * 获取医生分页列表（将前端查询参数统一转换为后端入参）
- * 前端：DoctorListParams { page, pageSize, keyword, deptId, title, status, createdRange }
- * 后端：{ pageNum, pageSize, keyword, deptId, title, status, createdStart, createdEnd }
+ * 前端：DoctorListParams { page, pageSize, deptId, title, status, createdRange }
+ * 后端：{ pageNum, pageSize, deptId, title, status, createdStart, createdEnd }
  */
 /**
  * 期望入参：已在页面层完成 page→pageNum 的字段映射与必要清理
- * 例如：{ pageNum, pageSize, keyword, title, deptId, status, ... }
+ * 例如：{ pageNum, pageSize, title, deptId, status, ... }
  */
 export const getDoctorList = (payload: any): Promise<PageResponse<DoctorItem>> => {
   return request.post('/admin/doctors/page', payload) as Promise<PageResponse<DoctorItem>>

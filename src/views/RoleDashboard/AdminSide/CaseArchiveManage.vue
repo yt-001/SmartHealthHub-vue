@@ -23,15 +23,7 @@
             @keyup.enter="onConfirm"
           />
         </el-form-item>
-        <el-form-item label="诊断结果">
-          <el-input
-            v-model="query.diagnosis"
-            placeholder="按诊断结果搜索"
-            clearable
-            class="form-input"
-            @keyup.enter="onConfirm"
-          />
-        </el-form-item>
+
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部状态" clearable class="form-select">
             <el-option label="治疗中" :value="0" />
@@ -42,15 +34,40 @@
 
         <!-- 高级筛选（就诊日期范围，可选） -->
         <template v-if="advancedOpen">
-          <el-form-item label="就诊日期">
+          <el-form-item label="完成开始">
             <el-date-picker
-              v-model="query.visitRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
+              v-model="query.completedStart"
+              type="date"
+              placeholder="完成开始日期"
               value-format="YYYY-MM-DD"
-              class="form-select"
+              class="form-select w240"
+            />
+          </el-form-item>
+          <el-form-item label="完成结束">
+            <el-date-picker
+              v-model="query.completedEnd"
+              type="date"
+              placeholder="完成结束日期"
+              value-format="YYYY-MM-DD"
+              class="form-select w240"
+            />
+          </el-form-item>
+          <el-form-item label="就诊开始">
+            <el-date-picker
+              v-model="query.visitStart"
+              type="date"
+              placeholder="就诊开始日期"
+              value-format="YYYY-MM-DD"
+              class="form-select w240"
+            />
+          </el-form-item>
+          <el-form-item label="就诊结束">
+            <el-date-picker
+              v-model="query.visitEnd"
+              type="date"
+              placeholder="就诊结束日期"
+              value-format="YYYY-MM-DD"
+              class="form-select w240"
             />
           </el-form-item>
         </template>
@@ -147,25 +164,27 @@ interface QueryState {
   pageSize: number
   patientName?: string
   doctorName?: string
-  diagnosis?: string
   status?: 0 | 1 | 2
-  /** 就诊日期范围（可选，用于映射 visitDateStart/visitDateEnd） */
-  visitRange?: [string, string] | []
+  completedStart?: string
+  completedEnd?: string
+  visitStart?: string
+  visitEnd?: string
 }
 const defaultQuery: QueryState = {
   page: 1,
   pageSize: 10,
   patientName: '',
   doctorName: '',
-  diagnosis: '',
   status: undefined,
-  visitRange: []
+  completedStart: undefined,
+  completedEnd: undefined,
+  visitStart: undefined,
+  visitEnd: undefined
 }
 const query = ref<QueryState>({ ...defaultQuery })
 
 /** 将前端查询参数映射为后端分页入参结构 */
 const buildPayload = (q: QueryState) => {
-  const [visitDateStart, visitDateEnd] = (Array.isArray(q.visitRange) ? q.visitRange : []) as [string?, string?]
   return {
     pageNum: q.page,
     pageSize: q.pageSize,
@@ -174,11 +193,11 @@ const buildPayload = (q: QueryState) => {
     query: {
       patientName: q.patientName ?? '',
       doctorName: q.doctorName ?? '',
-      diagnosis: q.diagnosis ?? '',
       status: typeof q.status === 'number' ? q.status : null,
-      // 可选：若后端暂未支持时间范围，这两项会被忽略
-      visitDateStart: visitDateStart ?? '',
-      visitDateEnd: visitDateEnd ?? ''
+      completedStart: q.completedStart ?? '',
+      completedEnd: q.completedEnd ?? '',
+      visitStart: q.visitStart ?? '',
+      visitEnd: q.visitEnd ?? ''
     }
   }
 }

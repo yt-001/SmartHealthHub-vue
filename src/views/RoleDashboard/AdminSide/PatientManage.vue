@@ -11,30 +11,43 @@
         <el-form-item label="手机号">
           <el-input v-model="query.phone" placeholder="按手机号搜索" clearable class="form-input" @keyup.enter="onConfirm" />
         </el-form-item>
+        <el-form-item label="身份证号">
+          <el-input v-model="query.idCard" placeholder="按身份证号搜索" clearable class="form-input" @keyup.enter="onConfirm" />
+        </el-form-item>
         <el-form-item label="性别">
           <el-select v-model="query.gender" placeholder="全部性别" clearable class="form-select">
             <el-option label="男" value="M" />
             <el-option label="女" value="F" />
+            <el-option label="其他" value="O" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部状态" clearable class="form-select">
             <el-option label="正常" :value="0" />
             <el-option label="锁定" :value="1" />
+            <el-option label="未激活" :value="2" />
+            <el-option label="已注销" :value="3" />
           </el-select>
         </el-form-item>
 
         <!-- 高级筛选 -->
         <template v-if="advancedOpen">
-          <el-form-item label="建档时间">
+          <el-form-item label="开始时间">
             <el-date-picker
-              v-model="query.createdRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
+              v-model="query.createdStart"
+              type="date"
+              placeholder="开始日期"
               value-format="YYYY-MM-DD"
-              class="form-select"
+              class="form-select w240"
+            />
+          </el-form-item>
+          <el-form-item label="结束时间">
+            <el-date-picker
+              v-model="query.createdEnd"
+              type="date"
+              placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              class="form-select w240"
             />
           </el-form-item>
         </template>
@@ -135,9 +148,11 @@ interface QueryState {
   pageSize: number
   realName?: string
   phone?: string
-  gender?: 'M' | 'F'
-  status?: 0 | 1
-  createdRange?: [string, string] | []
+  idCard?: string
+  gender?: 'M' | 'F' | 'O'
+  status?: 0 | 1 | 2 | 3
+  createdStart?: string
+  createdEnd?: string
 }
 
 const defaultQuery: QueryState = {
@@ -145,15 +160,16 @@ const defaultQuery: QueryState = {
   pageSize: 10,
   realName: '',
   phone: '',
+  idCard: '',
   gender: undefined,
   status: undefined,
-  createdRange: []
+  createdStart: undefined,
+  createdEnd: undefined
 }
 
 const query = ref<QueryState>({ ...defaultQuery })
 
 const buildPatientPayload = (q: QueryState) => {
-  const [createTimeStart, createTimeEnd] = (Array.isArray(q.createdRange) ? q.createdRange : []) as [string?, string?]
   return {
     pageNum: q.page,
     pageSize: q.pageSize,
@@ -162,10 +178,11 @@ const buildPatientPayload = (q: QueryState) => {
     query: {
       realName: q.realName ?? '',
       phone: q.phone ?? '',
+      idCard: q.idCard ?? '',
       gender: q.gender ?? '',
       status: typeof q.status === 'number' ? q.status : null,
-      createTimeStart: createTimeStart ?? '',
-      createTimeEnd: createTimeEnd ?? ''
+      createdStart: q.createdStart ?? '',
+      createdEnd: q.createdEnd ?? ''
     }
   }
 }

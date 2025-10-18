@@ -3,7 +3,8 @@
  */
 import request from '../http'
 import type { PageResponse } from '../types'
-import type { PatientItem } from '../types/patientTypes'
+import type { PatientItem, PatientAuthenticationDTO } from '../types/patientTypes'
+import type { ApiResponse } from '@/api/types'
 
 /**
  * 获取患者分页列表
@@ -12,6 +13,11 @@ import type { PatientItem } from '../types/patientTypes'
  */
 export const getPatientList = (payload: any): Promise<PageResponse<PatientItem>> => {
   return request.post('/admin/patients/page', payload) as Promise<PageResponse<PatientItem>>
+}
+
+/** 获取单个患者认证审核详情（GET） */
+export function fetchPatientAuthDetail(id: string) {
+  return request.get(`/user/profiles/${id}`) as Promise<ApiResponse<PatientAuthenticationDTO>>
 }
 
 export const patientApi = {

@@ -49,18 +49,24 @@
 
         <!-- 高级筛选：通过 v-if 控制显隐，实现动态布局 -->
         <template v-if="advancedOpen">
-          <el-form-item label="创建时间">
+          <el-form-item label="开始时间">
             <el-date-picker
-              v-model="query.createdRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
+              v-model="query.createdStart"
+              type="date"
+              placeholder="开始日期"
               value-format="YYYY-MM-DD"
-              class="form-select"
+              class="form-select w240"
             />
           </el-form-item>
-
+          <el-form-item label="结束时间">
+            <el-date-picker
+              v-model="query.createdEnd"
+              type="date"
+              placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              class="form-select w240"
+            />
+          </el-form-item>
         </template>
 
         <!-- 操作按钮：作为表单的最后一个 flex 项，靠右对齐 -->
@@ -151,7 +157,7 @@
 import { ref, onMounted } from 'vue'
 import { Search, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { doctorApi } from '@/api'
-import type { DoctorItem, DoctorListParams } from '@/api/types/doctorTypes'
+import type { DoctorItem } from '@/api/types/doctorTypes'
 
 /** 禁止模拟数据：所有数据都来自后端 */
 const useMock = false
@@ -167,7 +173,20 @@ const total = ref(0)
 const fetchError = ref(false)
 
 /** 查询参数（分页+筛选） */
-const query = ref<DoctorListParams & { createdRange?: [string, string] | [] }>({
+const query = ref<{
+  page: number;
+  pageSize: number;
+  realName?: string;
+  phone?: string;
+  deptId?: number;
+  title?: string;
+  status?: number;
+  createdAt?: string;
+  email?: string;
+  specialty?: string;
+  createdStart?: string;
+  createdEnd?: string;
+}>({
   page: 1,
   pageSize: 10,
   realName: '',
@@ -175,8 +194,9 @@ const query = ref<DoctorListParams & { createdRange?: [string, string] | [] }>({
   deptId: undefined,
   title: '',
   status: undefined,
-  createTime: undefined,
-  createdRange: []
+  createdAt: undefined,
+  createdStart: undefined,
+  createdEnd: undefined
 })
 
 /** 选项：科室、职称 */
@@ -196,32 +216,23 @@ const titleOptions = ['主任医师', '副主任医师', '主治医师', '住院
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 /** 获取列表（仅后端模式，直接使用已定义的查询参数类型） */
-const buildDoctorPayload = (q: DoctorListParams & { createdRange?: [string, string] | [] }) => {
-  // 将筛选条件嵌入 query；时间范围映射为 createTimeStart/createTimeEnd
-  const [createTimeStart, createTimeEnd] =
-    (Array.isArray(q.createdRange) ? q.createdRange : []) as [string?, string?]
+const buildDoctorPayload = (q: any) => {
+  // 将页面的“旧形态”查询模型映射为后端 BasePageQuery 结构（分开开始/结束时间）
   return {
     pageNum: q.page,
     pageSize: q.pageSize,
     sortField: '',
     sortDirection: 'ASC',
     query: {
-      // BaseQuery
-      keyword: '', // 关键词改用姓名搜索，这里置空
-      createTime: q.createTime ?? '',
-      updateTime: q.updateTime ?? '',
-      // 衍生的范围字段（若后端已支持范围，将其作为主要条件）
-      createTimeStart: createTimeStart ?? '',
-      createTimeEnd: createTimeEnd ?? '',
-      // DoctorPageQuery
-      username: q.username ?? '',
+      // 仅保留你提供的 @Schema 字段集合
       realName: q.realName ?? '',
       phone: q.phone ?? '',
-      email: q.email ?? '',
       title: q.title ?? '',
       deptId: typeof q.deptId === 'number' ? q.deptId : null,
-      specialty: q.specialty ?? '',
-      status: typeof q.status === 'number' ? q.status : null
+      status: typeof q.status === 'number' ? q.status : null,
+      // BaseQuery 范围时间字段（创建起止）
+      createdStart: q.createdStart ?? '',
+      createdEnd: q.createdEnd ?? ''
     }
   }
 }
@@ -289,8 +300,8 @@ const onReset = () => {
     deptId: undefined,
     title: '',
     status: undefined,
-    createTime: undefined,
-    createdRange: []
+    createdStart: undefined,
+    createdEnd: undefined
   } as any
   fetchList()
 }
@@ -455,6 +466,12 @@ onMounted(fetchList)
   color: var(--el-text-color-secondary);
   display: flex;
   gap: 12px;
+}
+
+/* 日期选择宽度与 DoctorCertReviewList.vue 对齐：统一使用工具类 w360 */
+.w360 { width: 360px; }
+:deep(.w360 .el-range-editor.el-input__wrapper) {
+  width: 360px;
 }
 
 </style>
