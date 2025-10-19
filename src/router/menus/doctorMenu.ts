@@ -50,7 +50,7 @@ const doctorMenu: MenuItem[] = [
     children: [
       { title: "患者挂号信息", path: "/portal/doctor/registration", icon: "Notebook" },
       { title: "预约审核", path: "/portal/doctor/appointment-review", icon: "CircleCheck" },
-      { title: "医生排班查看", path: "/portal/doctor/schedule", icon: "Calendar" },
+      { title: "医生排班查看", path: "/portal/schedule", icon: "Calendar" },
     ],
   },
   {

@@ -35,7 +35,8 @@ const doRefresh = () => {
       '/auth/refresh',
       {},
       {
-        baseURL: service.defaults.baseURL,
+        // 使用后端完整地址，确保命中 http://localhost:9000/auth/refresh
+        baseURL: 'http://localhost:9000',
         withCredentials: true,
         headers: { 'Content-Type': 'application/json;charset=UTF-8' }
       }
@@ -48,9 +49,35 @@ const doRefresh = () => {
 }
 
 service.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // 成功：直接返回后端统一响应结构（code/msg/data）
-    return response.data as any
+  async (response: AxiosResponse) => {
+    // 成功：按统一响应结构 ApiResponse 读取业务码
+    const data: any = response.data as any
+    const url: string = response.config?.url || ''
+    const isAuthPath =
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/login') ||
+      url.includes('/auth/logout')
+
+    const code = data?.code
+    // 通用规则：当业务码为 4001/4002（访问令牌无效/过期）时，触发刷新并重试一次原请求
+    if ((code === 4001 || code === 4002) && !isAuthPath && !(response.config as any)?._retryByBusinessRefresh) {
+      try {
+        await doRefresh()
+        const retryConfig: any = { ...response.config, _retryByBusinessRefresh: true }
+        return service.request(retryConfig)
+      } catch (e) {
+        // 刷新失败：清理用户并抛出
+        try {
+          const { useUserStore } = await import('@/stores/user')
+          const store = useUserStore()
+          store.clearUser?.()
+        } catch {}
+        return Promise.reject(e)
+      }
+    }
+
+    // 其他成功：直接返回 data
+    return data as any
   },
   async (error) => {
     const status = error?.response?.status
@@ -63,23 +90,22 @@ service.interceptors.response.use(
       url.includes('/auth/login') ||
       url.includes('/auth/logout')
 
-    // 仅处理 401（或部分后端用 419/498 表示过期），且不是认证路径，且未重试过
-    const isExpired = status === 401 || status === 419 || status === 498
-    if (isExpired && originalRequest && !isAuthPath && !originalRequest._retry) {
-      originalRequest._retry = true
+    // 新规则：401 未授权 -> 引导用户重新登录，不再自动刷新
+    if (status === 401 && !isAuthPath) {
       try {
-        await doRefresh()
-        // 刷新成功：重试原请求
-        return service.request(originalRequest)
-      } catch (e) {
-        // 刷新失败：清理用户状态，抛错
-        try {
-          const { useUserStore } = await import('@/stores/user')
-          const store = useUserStore()
-          store.clearUser?.()
-        } catch {}
-        return Promise.reject(e || error)
-      }
+        const { useUserStore } = await import('@/stores/user')
+        const store = useUserStore()
+        store.clearUser?.()
+      } catch {}
+
+      // 尝试导航到登录页（容错：根据项目导出方式获取 router）
+      try {
+        const routerMod: any = await import('@/router')
+        const router = routerMod?.default || routerMod?.router || routerMod
+        router?.push?.('/login')
+      } catch {}
+
+      return Promise.reject(error)
     }
 
     // 其他情况：直接抛出

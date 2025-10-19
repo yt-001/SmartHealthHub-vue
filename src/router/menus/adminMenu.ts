@@ -53,7 +53,7 @@ const adminMenu: MenuItem[] = [
     icon: "Calendar",
     children: [
       { title: "科室维护", path: "/portal/admin/department-maintain", icon: "OfficeBuilding" },
-      { title: "医生排班", path: "/portal/admin/doctor-schedule", icon: "Calendar" },
+      { title: "医生排班", path: "/portal/schedule", icon: "Calendar" },
       { title: "节假日排班", path: "/portal/admin/holiday-schedule", icon: "Calendar" },
       { title: "门诊号源预览", path: "/portal/admin/outpatient-slots-preview", icon: "View" },
     ],
