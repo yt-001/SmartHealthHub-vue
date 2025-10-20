@@ -1,6 +1,10 @@
 <template>
   <!-- 中文注释：排班日历页面 -->
-  <div class="schedule-page">
+  <div
+    v-loading="isLoading"
+    element-loading-text="正在加载排班数据..."
+    class="schedule-page"
+  >
     <!-- 顶部工具栏：月份切换与选择 -->
     <div class="toolbar">
       <el-button size="small" @click="goPrevMonth">上一月</el-button>
@@ -21,44 +25,67 @@
     <el-calendar v-model="calendarDate">
       <!-- 自定义日期单元格 -->
       <template #date-cell="{ data }">
-        <!-- 中文注释：data.day 为 YYYY-MM-DD 字符串 -->
-        <div class="date-cell" @click="openDayDialog(data.day)">
-          <div class="date-header">
-            <span class="day-number">{{ getDayNumber(data.day) }}</span>
-            <span v-if="isHoliday(data.day)" class="rest-badge">休</span>
-          </div>
-          <span v-if="isToday(data.day)" class="today-dot"></span>
-          <div class="schedule-list">
-            <template v-if="schedules[data.day] && schedules[data.day].length">
-              <!-- 只展示最多 3 个医生名字 -->
-              <div v-for="(doc, idx) in schedules[data.day].slice(0, 3)" :key="doc + idx" class="doctor-pill">
-                {{ doc }}
+        <!--
+          中文注释：
+          data.type 的值为 'prev-month', 'current-month', 'next-month'
+          根据 type 判断是否为当月日期，非当月日期格子置空且不可点击
+        -->
+        <div
+          class="date-cell"
+          :class="{ 'is-other-month': data.type !== 'current-month' }"
+          @click="data.type === 'current-month' && openDayDialog(data.day)"
+        >
+          <template v-if="data.type === 'current-month'">
+            <div class="date-header">
+              <span class="day-number">{{ getDayNumber(data.day) }}</span>
+              <span v-if="isHoliday(data.day)" class="rest-badge">休</span>
+            </div>
+            <span v-if="isToday(data.day)" class="today-dot"></span>
+
+            <!-- 中文注释：排班项容器 -->
+            <div
+              v-if="schedules[data.day] && schedules[data.day].length > 0"
+              class="schedule-list-wrapper"
+            >
+              <div
+                :ref="(el) => (scheduleListRefs[data.day] = el as HTMLElement)"
+                class="schedule-list"
+              >
+                <div
+                  v-for="(it, idx) in schedules[data.day]"
+                  :key="it.id + '-' + idx"
+                  class="doctor-pill"
+                >
+                  {{ it.doctorName }}({{ shiftCodeMap[it.shiftCode] }})
+                </div>
               </div>
-              <div v-if="schedules[data.day].length > 3" class="more-pill">
-                +{{ schedules[data.day].length - 3 }}
+              <div v-if="hiddenSchedulesCount[data.day] > 0" class="more-count">
+                +{{ hiddenSchedulesCount[data.day] }}
               </div>
-            </template>
-            <template v-else>
-              <div class="empty-tip">无排班</div>
-            </template>
-          </div>
+            </div>
+            <!-- 中文注释：如果当天不是节假日且没有排班，则显示“无排班” -->
+            <div v-else-if="!isHoliday(data.day)" class="empty-tip">无排班</div>
+          </template>
         </div>
       </template>
     </el-calendar>
 
-    <!-- 弹窗：展示某天的全部排班医生 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="420px">
+    <!-- 弹窗：展示某天的全部排班详情（可滚动） -->
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="450px">
       <div class="dialog-body">
-        <template v-if="currentDayDoctors.length">
-          <el-tag
-            v-for="(doc, i) in currentDayDoctors"
-            :key="doc + i"
-            class="tag-item"
-            type="primary"
-            effect="plain"
-          >
-            {{ doc }}
-          </el-tag>
+        <template v-if="currentDayItems.length">
+          <div class="dialog-scroll">
+            <div
+              v-for="(it, i) in currentDayItems"
+              :key="it.id + '-' + i"
+              class="detail-row"
+            >
+              <span class="name">{{ it.doctorName }}</span>
+              <span class="shift">（{{ shiftCodeMap[it.shiftCode] }}）</span>
+              <span class="dept">· {{ it.deptName }}</span>
+              <span class="title">· {{ it.title }}</span>
+            </div>
+          </div>
         </template>
         <template v-else>
           <div class="dialog-empty">该日无排班</div>
@@ -88,24 +115,40 @@
  * - 接口：当前用本地模拟数据，预留 loadSchedules() 函数以便后续接入后端
  * - 交互：月份切换（上一月/下一月）、月份选择器、点击日期弹窗
  */
-import { ref, computed, onMounted } from 'vue'
-import { fetchHolidays } from '@/api/modules/schedule'
+import {
+  ref,
+  computed,
+  onMounted,
+  reactive,
+  watch,
+  onBeforeUnmount,
+  nextTick
+} from 'vue'
+import { fetchHolidays, fetchScheduleCalendarByRange } from '@/api/modules/schedule'
 import { useUserStore } from '@/stores/user'
+import type { DoctorScheduleItem, ShiftCode } from '@/api/types/scheduleTypes'
 
+// 中文注释：全局加载状态
+const isLoading = ref(false)
 // 中文注释：当前选中的日期，用于 el-calendar 控件（值为 Date）
 const calendarDate = ref<Date>(new Date())
 // 中文注释：月份选择器的值（YYYY-MM），用于联动日历
 const monthPicker = ref<string>(formatYearMonth(new Date()))
 
-// 中文注释：排班数据结构，key 为 YYYY-MM-DD，value 为医生姓名数组
-const schedules = ref<Record<string, string[]>>({})
+/* 中文注释：排班数据结构，key 为 YYYY-MM-DD，value 为当日完整排班项数组（DoctorScheduleItem[]） */
+const schedules = ref<Record<string, DoctorScheduleItem[]>>({})
 /** 中文注释：当月节假日集合，key 为 YYYY-MM-DD */
 const holidays = ref<Record<string, string>>({})
+
+// 中文注释：用于获取每日排班列表的 DOM 引用
+const scheduleListRefs = ref<Record<string, HTMLElement>>({})
+// 中文注释：存储每日被隐藏的排班数量
+const hiddenSchedulesCount = reactive<Record<string, number>>({})
 
 // 中文注释：弹窗相关状态
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
-const currentDayDoctors = ref<string[]>([])
+const currentDayItems = ref<DoctorScheduleItem[]>([])
 const addDialogVisible = ref(false)
 
 /** 中文注释：是否管理员（仅管理员可见“添加排班表”按钮） */
@@ -119,6 +162,14 @@ const roleMap: Record<string | number, 'user' | 'doctor' | 'admin'> = {
   admin: 'admin',
   doctor: 'doctor'
 }
+
+/** 中文注释：班次代码中文映射 */
+const shiftCodeMap: Record<ShiftCode, string> = {
+  AM: '上午',
+  PM: '下午',
+  FULL: '全天'
+}
+
 const isAdmin = computed(() => {
   const rawRole = (userStore as any)?.userInfo?.role
   const role = roleMap[rawRole] ?? ''
@@ -127,8 +178,31 @@ const isAdmin = computed(() => {
 
 /** 中文注释：初始化与刷新排班数据 */
 const reload = async () => {
-  // 并行加载：排班与节假日
-  await Promise.all([loadSchedules(monthPicker.value), loadHolidays(monthPicker.value)])
+  isLoading.value = true
+  // 清空旧数据，避免在加载时显示上个月的内容
+  schedules.value = {}
+  holidays.value = {}
+
+  // 中文注释：并行加载数据，并保证至少有 1 秒的加载动画
+  const fetchDataPromise = Promise.all([
+    loadSchedules(monthPicker.value),
+    loadHolidays(monthPicker.value)
+  ])
+  const minDelayPromise = new Promise(resolve => setTimeout(resolve, 1000))
+
+  try {
+    const [fetchedData] = await Promise.all([fetchDataPromise, minDelayPromise])
+    const [newSchedules, newHolidays] = fetchedData
+    schedules.value = newSchedules
+    holidays.value = newHolidays
+  } catch (error) {
+    // 错误在各自的加载函数中已处理（返回空对象），这里仅作记录
+    console.error('An error occurred during data reload:', error)
+    schedules.value = {}
+    holidays.value = {}
+  } finally {
+    isLoading.value = false
+  }
 }
 
 /** 中文注释：上一月 */
@@ -160,7 +234,7 @@ const onMonthChange = (val: string) => {
 /** 中文注释：点击日期，弹窗展示该日排班医生列表 */
 const openDayDialog = (dayStr: string) => {
   dialogTitle.value = `排班（${dayStr}）`
-  currentDayDoctors.value = schedules.value[dayStr] || []
+  currentDayItems.value = schedules.value[dayStr] || []
   dialogVisible.value = true
 }
 
@@ -188,29 +262,50 @@ function parseYearMonthToDate(val: string): Date {
   return new Date(year, month, 1)
 }
 
-/** 中文注释：模拟加载某月的排班数据（接入后端时替换此函数） */
-async function loadSchedules(ym: string) {
-  // TODO: 接入后端接口，例如：GET /api/schedule?month=YYYY-MM
-  // 返回格式建议：{ date: 'YYYY-MM-DD', doctors: string[] }[]
-  // 这里先用简单的本地模拟，确保交互流程完整
-  const mock: Record<string, string[]> = {}
-  const baseDate = parseYearMonthToDate(ym)
-  const daysInMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate()
+/** 中文注释：加载某月的排班数据（改为：按时间范围查询 /schedule/calendar） */
+async function loadSchedules(ym: string): Promise<Record<string, DoctorScheduleItem[]>> {
+  try {
+    // 计算该月的起止日期（YYYY-MM-DD）
+    const base = parseYearMonthToDate(ym)
+    const year = base.getFullYear()
+    const month = base.getMonth() + 1
+    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`
+    const lastDayDate = new Date(year, month, 0) // 当月最后一天
+    const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`
 
-  // 中文注释：模拟一些排班，随机填充 0~5 位医生
-  const doctorPool = ['张三', '李四', '王五', '赵六', '孙七', '周八', '吴九', '郑十']
-  for (let d = 1; d <= daysInMonth; d++) {
-    const day = String(d).padStart(2, '0')
-    const dayKey = `${formatYearMonth(baseDate)}-${day}`
-    const count = Math.floor(Math.random() * 6) // 0~5
-    mock[dayKey] = Array.from({ length: count }, (_, i) => doctorPool[(d + i) % doctorPool.length])
+    // 从页面/用户状态提取查询维度：
+    // - 若当前登录为医生，则自动携带 doctorId；非医生角色不传
+    const rawUserId = (userStore as any)?.userInfo?.id
+    const rawRole = (userStore as any)?.userInfo?.role
+    const role = roleMap[rawRole] ?? ''
+    const doctorId = role === 'doctor' && Number.isFinite(Number(rawUserId)) ? Number(rawUserId) : undefined
+
+    // - 科室过滤暂不传；如需按科室过滤，可在页面添加选择器后写入 deptId
+    const query = {
+      startDate: firstDay,
+      endDate: lastDay,
+      doctorId,
+      // deptId: 可根据页面筛选控件设置
+    }
+
+    // 发起接口请求（统一风格：返回 ApiResponse<DoctorScheduleItem[]>）
+    const { data } = await fetchScheduleCalendarByRange(query as any)
+
+    // 映射为 { [YYYY-MM-DD]: DoctorScheduleItem[] }（保留完整条目用于弹窗）
+    const map: Record<string, DoctorScheduleItem[]> = {}
+    for (const item of data || []) {
+      const day = item.scheduleDate
+      if (!map[day]) map[day] = []
+      map[day].push(item)
+    }
+    return map
+  } catch {
+    return {}
   }
-
-  schedules.value = mock
 }
 
 /** 中文注释：加载某月节假日（接入后端替换） */
-async function loadHolidays(ym: string) {
+async function loadHolidays(ym: string): Promise<Record<string, string>> {
   try {
     const { data } = await fetchHolidays(ym)
     const map: Record<string, string> = {}
@@ -219,9 +314,9 @@ async function loadHolidays(ym: string) {
         map[it.date] = it.name
       }
     }
-    holidays.value = map
+    return map
   } catch {
-    holidays.value = {}
+    return {}
   }
 }
 
@@ -240,9 +335,54 @@ function isToday(dayStr: string): boolean {
   return dayStr === todayStr
 }
 
+const updateHiddenCounts = async () => {
+  await nextTick()
+  for (const day in scheduleListRefs.value) {
+    const container = scheduleListRefs.value[day]
+    if (!container) {
+      hiddenSchedulesCount[day] = 0
+      continue
+    }
+
+    const containerRect = container.getBoundingClientRect()
+    const pills = container.querySelectorAll('.doctor-pill')
+    let hiddenCount = 0
+    let isHiding = false
+    
+    // 先移除所有 is-hidden 类，以便重新计算
+    pills.forEach(p => p.classList.remove('is-hidden'))
+
+    for (let i = 0; i < pills.length; i++) {
+      const pill = pills[i] as HTMLElement
+      if (isHiding) {
+        pill.classList.add('is-hidden')
+        hiddenCount++
+        continue
+      }
+      const pillRect = pill.getBoundingClientRect()
+      // 检查药丸是否完全在容器内（水平方向），增加1px容差
+      if (pillRect.right > containerRect.right + 1) {
+        isHiding = true
+        pill.classList.add('is-hidden')
+        hiddenCount++
+      }
+    }
+    hiddenSchedulesCount[day] = hiddenCount
+  }
+}
+
+// When schedules data changes, re-calculate
+watch(schedules, updateHiddenCounts, { deep: true, flush: 'post' })
+
 onMounted(() => {
   reload()
+  window.addEventListener('resize', updateHiddenCounts)
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateHiddenCounts)
+})
+
 
 /** 中文注释：打开添加排班弹窗 */
 function openAddDialog() {
@@ -294,6 +434,12 @@ function openAddDialog() {
   background: var(--el-color-primary-light-9);
   cursor: pointer;
 }
+.date-cell.is-other-month {
+  cursor: default;
+}
+.date-cell.is-other-month:hover {
+  background: transparent;
+}
 
 .date-header {
   display: flex;
@@ -306,27 +452,48 @@ function openAddDialog() {
   color: var(--el-text-color-primary);
 }
 
+.schedule-list-wrapper {
+  position: relative;
+  margin-top: 4px;
+  height: 22px; /* Give it a fixed height to contain pills and count */
+}
+
 .schedule-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap; /* 中文注释：强制单行显示，避免换行撑高格子 */
+  gap: 4px; /* 中文注释：减小间距 */
+  overflow: hidden; /* 中文注释：超出部分直接隐藏 */
+  height: 100%;
 }
 .doctor-pill {
-  background: var(--el-color-primary);
+  background: var(--el-color-primary-light-3);
   color: #fff;
   font-size: 12px;
-  line-height: 20px;
-  padding: 0 8px;
-  border-radius: 10px;
+  line-height: 18px; /* 中文注释：减小行高 */
+  padding: 0 6px; /* 中文注释：减小内边距 */
+  border-radius: 4px; /* 中文注释：减小圆角，使其更紧凑 */
+  white-space: nowrap;
+  flex-shrink: 0; /* 中文注释：禁止药丸本身被压缩 */
+}
+.doctor-pill.is-hidden {
+  display: none;
 }
 .more-pill {
-  background: var(--el-color-primary-light-7);
-  color: var(--el-color-primary);
-  font-size: 12px;
-  line-height: 20px;
-  padding: 0 8px;
-  border-radius: 10px;
+  /* not used */
 }
+
+.more-count {
+  position: absolute;
+  bottom: -15px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #555;
+  background-color: rgba(230, 230, 230, 0.7);
+  padding: 0 4px;
+  border-radius: 3px;
+  z-index: 1;
+}
+
 .empty-tip {
   color: var(--el-text-color-secondary);
   font-size: 12px;
@@ -334,15 +501,39 @@ function openAddDialog() {
 
 /* 弹窗内排班标签样式 */
 .dialog-body {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  max-height: 320px; /* 中文注释：限制高度，出现滚动 */
+  overflow: auto;
+  padding-right: 10px; /* 留出滚动条空间 */
 }
-.tag-item {
-  margin-bottom: 4px;
+.dialog-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.detail-row {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.detail-row .name {
+  font-weight: 600;
+}
+.detail-row .shift {
+  color: var(--el-color-primary);
+  font-weight: 500;
+}
+.detail-row .dept,
+.detail-row .title {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 .dialog-empty {
   color: var(--el-text-color-secondary);
+  text-align: center;
+  padding: 20px 0;
 }
 .rest-badge {
   position: absolute;
