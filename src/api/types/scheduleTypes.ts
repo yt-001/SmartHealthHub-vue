@@ -75,3 +75,35 @@ export interface DoctorScheduleCalendarQuery {
   /** 科室ID */
   deptId?: number
 }
+
+/** ================== 新增：医生科室信息，用于排班选择 ================== */
+export interface DoctorDeptVO {
+  /** 医生ID */
+  doctorId: number
+  /** 医生姓名 */
+  doctorName: string
+  /** 科室ID */
+  deptId: number
+  /** 科室名称 */
+  deptName: string
+  /** 诊室编号 */
+  roomNo: string
+}
+
+/** ================== 新增/编辑：医生排班创建请求体 ================== */
+export interface DoctorScheduleCreateDTO {
+  /** 医生ID */
+  doctorId: number
+  /** 科室ID */
+  deptId: number
+  /** 排班日期 */
+  scheduleDate: string
+  /** 班次编码：AM 上午 PM 晚班 FULL 全天等 */
+  shiftCode: ShiftCode
+  /** 诊室编号 */
+  roomNo?: string
+  /** 最大可预约号数 */
+  maxAppoint?: number
+  /** 冗余扩展：价格、号源池ID、远程视频标识等，JSON格式 */
+  extraJson?: string
+}

@@ -97,12 +97,103 @@
     </el-dialog>
 
     <!-- 添加排班表弹窗（仅管理员可见） -->
-    <el-dialog v-model="addDialogVisible" title="添加排班表" width="520px">
-      <!-- 中文注释：内容暂为空，后续接入排班编辑表单 -->
-      <div class="dialog-empty">功能建设中：此处填入排班编辑表单</div>
+    <el-dialog v-model="addDialogVisible" title="添加/编辑排班" width="520px" @close="resetForm">
+      <el-form ref="addFormRef" :model="addScheduleForm" :rules="rules" label-width="90px">
+        <el-form-item label="排班日期" prop="scheduleDate">
+          <el-date-picker
+            v-model="addScheduleForm.scheduleDate"
+            type="date"
+            placeholder="选择日期"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="科室" prop="deptId">
+          <div class="select-with-search">
+            <el-select
+              v-model="addScheduleForm.deptId"
+              placeholder="请选择科室"
+              @change="handleDeptSelectChange"
+            >
+              <el-option
+                v-for="item in allDeptOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+            <el-autocomplete
+              v-model="deptSearch"
+              :fetch-suggestions="queryDeptSearch"
+              placeholder="搜索科室"
+              clearable
+              @select="handleDeptSearchSelect"
+            >
+              <template #suffix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-autocomplete>
+          </div>
+        </el-form-item>
+        <el-form-item label="医生" prop="doctorId">
+          <div class="select-with-search">
+            <el-select
+              v-model="addScheduleForm.doctorId"
+              placeholder="请选择医生"
+              @change="handleDoctorSelectChange"
+            >
+              <el-option
+                v-for="item in allDoctorOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+            <el-autocomplete
+              v-model="doctorSearch"
+              :fetch-suggestions="queryDoctorSearch"
+              placeholder="搜索医生"
+              clearable
+              @select="handleDoctorSearchSelect"
+            >
+              <template #suffix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-autocomplete>
+          </div>
+        </el-form-item>
+        <el-form-item label="班次" prop="shiftCode">
+          <el-select v-model="addScheduleForm.shiftCode" placeholder="请选择班次" style="width: 100%">
+            <el-option label="上午" value="AM" />
+            <el-option label="下午" value="PM" />
+            <el-option label="全天" value="FULL" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="诊室编号" prop="roomNo">
+          <el-select v-model="addScheduleForm.roomNo" placeholder="请选择诊室" style="width: 100%">
+            <el-option
+              v-for="item in roomOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="最大号源" prop="maxAppoint">
+          <el-input-number v-model="addScheduleForm.maxAppoint" :min="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="扩展信息" prop="extraJson">
+          <el-input
+            v-model="addScheduleForm.extraJson"
+            type="textarea"
+            :rows="2"
+            placeholder="请输入扩展信息"
+          />
+        </el-form-item>
+      </el-form>
       <template #footer>
         <el-button @click="addDialogVisible = false">关闭</el-button>
-        <el-button type="primary" disabled>保存（待实现）</el-button>
+        <el-button type="primary" :loading="isSaving" @click="handleSaveSchedule">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -124,9 +215,126 @@ import {
   onBeforeUnmount,
   nextTick
 } from 'vue'
-import { fetchHolidays, fetchScheduleCalendarByRange } from '@/api/modules/schedule'
+import {
+  fetchHolidays,
+  fetchScheduleCalendarByRange,
+  fetchDoctorDeptList,
+  createSchedule
+} from '@/api/modules/schedule'
 import { useUserStore } from '@/stores/user'
-import type { DoctorScheduleItem, ShiftCode } from '@/api/types/scheduleTypes'
+import type {
+  DoctorScheduleItem,
+  ShiftCode,
+  DoctorDeptVO,
+  DoctorScheduleCreateDTO
+} from '@/api/types/scheduleTypes'
+import { ElMessage, type FormInstance } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
+
+// 中文注释：添加排班表单的引用
+const addFormRef = ref<FormInstance>()
+
+// 中文注释：防止重复保存
+const isSaving = ref(false)
+
+// 中文注释：表单校验规则
+const rules = reactive({
+  scheduleDate: [{ required: true, message: '请选择排班日期', trigger: 'change' }],
+  deptId: [{ required: true, message: '请选择科室', trigger: 'change' }],
+  doctorId: [{ required: true, message: '请选择医生', trigger: 'change' }],
+  shiftCode: [{ required: true, message: '请选择班次', trigger: 'change' }]
+})
+
+// 中文注释：为表单数据定义接口以确保类型安全
+interface ScheduleForm {
+  scheduleDate: string
+  deptId: number | undefined
+  doctorId: number | undefined
+  shiftCode: ShiftCode | ''
+  roomNo: string
+  maxAppoint: number
+  extraJson: string
+}
+
+// 中文注释：添加排班的表单数据
+const addScheduleForm = ref<ScheduleForm>({
+  scheduleDate: '',
+  deptId: undefined,
+  doctorId: undefined,
+  shiftCode: '',
+  roomNo: '',
+  maxAppoint: 30,
+  extraJson: ''
+})
+
+// 中文注释：用于下拉选择的数据
+const allDeptOptions = ref<{ label: string; value: number }[]>([])
+const allDoctorOptions = ref<{ label: string; value: number }[]>([])
+const roomOptions = ref<{ label: string; value: string }[]>([])
+const isSelectDataLoaded = ref(false)
+
+const deptSearch = ref('')
+const doctorSearch = ref('')
+
+// --- start: Autocomplete Search Logic ---
+
+// 科室自动补全查询
+const queryDeptSearch = (queryString: string, cb: (arg: any) => void) => {
+  const results = queryString
+    ? allDeptOptions.value.filter(opt => opt.label.toLowerCase().includes(queryString.toLowerCase()))
+    : allDeptOptions.value
+  if (results.length) {
+    cb(results.map(opt => ({ value: opt.label, id: opt.value })))
+  } else {
+    cb([{ value: '无匹配结果', disabled: true }])
+  }
+}
+
+// 从科室搜索结果中选择
+const handleDeptSearchSelect = (item: { value: string; id: number }) => {
+  if (item.id) {
+    addScheduleForm.value.deptId = item.id
+    deptSearch.value = item.value
+  }
+}
+
+// 当左侧科室选择框变化时，同步更新右侧搜索框的文本
+const handleDeptSelectChange = (deptId: number) => {
+  const selected = allDeptOptions.value.find(opt => opt.value === deptId)
+  if (selected) {
+    deptSearch.value = selected.label
+  }
+}
+
+// 医生自动补全查询
+const queryDoctorSearch = (queryString: string, cb: (arg: any) => void) => {
+  const results = queryString
+    ? allDoctorOptions.value.filter(opt => opt.label.toLowerCase().includes(queryString.toLowerCase()))
+    : allDoctorOptions.value
+  if (results.length) {
+    cb(results.map(opt => ({ value: opt.label, id: opt.value })))
+  } else {
+    cb([{ value: '无匹配结果', disabled: true }])
+  }
+}
+
+// 从医生搜索结果中选择
+const handleDoctorSearchSelect = (item: { value: string; id: number }) => {
+  if (item.id) {
+    addScheduleForm.value.doctorId = item.id
+    doctorSearch.value = item.value
+  }
+}
+
+// 当左侧医生选择框变化时，同步更新右侧搜索框的文本
+const handleDoctorSelectChange = (doctorId: number) => {
+  const selected = allDoctorOptions.value.find(opt => opt.value === doctorId)
+  if (selected) {
+    doctorSearch.value = selected.label
+  }
+}
+
+// --- end: Autocomplete Search Logic ---
 
 // 中文注释：全局加载状态
 const isLoading = ref(false)
@@ -384,9 +592,103 @@ onBeforeUnmount(() => {
 })
 
 
+/** 中文注释：加载用于下拉选择的数据 */
+const loadSelectOptions = async () => {
+  if (isSelectDataLoaded.value) return
+  try {
+    const { data } = await fetchDoctorDeptList()
+    if (!data) return
+
+    const deptMap = new Map<number, string>()
+    const doctorMap = new Map<number, string>()
+    const roomSet = new Set<string>()
+
+    data.forEach(item => {
+      if (!deptMap.has(item.deptId)) {
+        deptMap.set(item.deptId, item.deptName)
+      }
+      if (!doctorMap.has(item.doctorId)) {
+        doctorMap.set(item.doctorId, item.doctorName)
+      }
+      if (item.roomNo) {
+        roomSet.add(item.roomNo)
+      }
+    })
+
+    allDeptOptions.value = Array.from(deptMap.entries()).map(([value, label]) => ({
+      label,
+      value
+    }))
+    allDoctorOptions.value = Array.from(doctorMap.entries()).map(([value, label]) => ({
+      label,
+      value
+    }))
+    roomOptions.value = Array.from(roomSet).map(room => ({ label: room, value: room }))
+
+    isSelectDataLoaded.value = true
+  } catch (error) {
+    console.error('加载下拉选项失败:', error)
+    ElMessage.error('加载科室/医生/诊室列表失败')
+  }
+}
+
 /** 中文注释：打开添加排班弹窗 */
 function openAddDialog() {
+  // 懒加载下拉框数据
+  loadSelectOptions()
   addDialogVisible.value = true
+}
+
+/** 中文注释：保存排班 */
+const handleSaveSchedule = async () => {
+  if (isSaving.value) return // 防止重复点击
+
+  try {
+    isSaving.value = true
+    const valid = await addFormRef.value?.validate()
+    if (!valid) {
+      return // 校验失败，不继续
+    }
+
+    // 构造请求数据，确保类型正确
+    const scheduleData: DoctorScheduleCreateDTO = {
+      scheduleDate: addScheduleForm.value.scheduleDate,
+      deptId: addScheduleForm.value.deptId!,
+      doctorId: addScheduleForm.value.doctorId!,
+      shiftCode: addScheduleForm.value.shiftCode as ShiftCode,
+      roomNo: addScheduleForm.value.roomNo || undefined,
+      maxAppoint: addScheduleForm.value.maxAppoint,
+      extraJson: addScheduleForm.value.extraJson || undefined
+    }
+
+    await createSchedule(scheduleData)
+
+    ElMessage.success('保存成功')
+    addDialogVisible.value = false
+    reload() // 刷新日历
+  } catch (error) {
+    console.error('保存失败:', error)
+    ElMessage.error('保存失败，请稍后重试')
+  } finally {
+    isSaving.value = false // 无论成功或失败，都结束保存状态
+  }
+}
+
+/** 中文注释：关闭弹窗时重置表单 */
+const resetForm = () => {
+  addFormRef.value?.resetFields()
+  // 如果有更复杂的默认值，可以在这里手动重置
+  addScheduleForm.value = {
+    scheduleDate: '',
+    deptId: undefined,
+    doctorId: undefined,
+    shiftCode: '',
+    roomNo: '',
+    maxAppoint: 30,
+    extraJson: ''
+  }
+  deptSearch.value = ''
+  doctorSearch.value = ''
 }
 </script>
 
@@ -564,5 +866,12 @@ function openAddDialog() {
 /* 让包含“休”徽标的日期格呈现为 el-calendar 默认的“选中”整格高亮 */
 :deep(.el-calendar) td:has(.rest-badge) .el-calendar-day {
   background: var(--el-color-primary-light-9);
+}
+
+.select-with-search {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
 }
 </style>

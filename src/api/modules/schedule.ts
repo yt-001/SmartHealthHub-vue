@@ -7,8 +7,13 @@
 
 import request from '../http'
 import type { ApiResponse } from '@/api/types'
-import type { HolidayItem, DoctorScheduleItem } from '@/api/types/scheduleTypes'
-import type { DoctorScheduleCalendarQuery } from '@/api/types/scheduleTypes'
+import type {
+  HolidayItem,
+  DoctorScheduleItem,
+  DoctorScheduleCalendarQuery,
+  DoctorDeptVO,
+  DoctorScheduleCreateDTO
+} from '@/api/types/scheduleTypes'
 
 /**
  * 获取某月节假日列表（仅本地 JSON）
@@ -56,9 +61,28 @@ export const fetchScheduleCalendarByRange = (query: DoctorScheduleCalendarQuery)
   return request.post('/schedule/calendar', { params: query }) as Promise<ApiResponse<DoctorScheduleItem[]>>
 }
 
+/**
+ * 获取医生科室信息列表，用于排班选择
+ * @returns ApiResponse<DoctorDeptVO[]>
+ */
+export const fetchDoctorDeptList = (): Promise<ApiResponse<DoctorDeptVO[]>> => {
+  return request.get('/schedule/doctor-dept-list') as Promise<ApiResponse<DoctorDeptVO[]>>
+}
+
+/**
+ * 新增医生排班
+ * @param scheduleData DoctorScheduleCreateDTO
+ * @returns ApiResponse<string>
+ */
+export const createSchedule = (scheduleData: DoctorScheduleCreateDTO): Promise<ApiResponse<string>> => {
+  return request.post('/schedule/create', scheduleData) as Promise<ApiResponse<string>>
+}
+
 /** 聚合导出（与其它模块保持一致） */
 export const scheduleApi = {
   fetchHolidays,
   fetchScheduleCalendar,
-  fetchScheduleCalendarByRange
+  fetchScheduleCalendarByRange,
+  fetchDoctorDeptList,
+  createSchedule
 }
