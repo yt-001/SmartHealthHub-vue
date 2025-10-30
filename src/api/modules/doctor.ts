@@ -33,5 +33,15 @@ export const getDoctorList = (payload: any): Promise<PageResponse<DoctorItem>> =
  */
 export const getDoctorProfile = async (userId: number): Promise<ApiResponse<DoctorProfilesVO>> => {
   // 实际接口：GET /doctor/profiles/{userId}
+  return request.get(`/doctor/profiles/user/${userId}`) as Promise<ApiResponse<DoctorProfilesVO>>
+}
+
+
+/**
+ * 获取当前医生档案信息,传递医生id（占位路径，后端确定后可调整）
+ * 默认返回 DoctorProfilesVO
+ */
+export const getDoctorProfileId = async (userId: number): Promise<ApiResponse<DoctorProfilesVO>> => {
+  // 实际接口：GET /doctor/profiles/{userId}
   return request.get(`/doctor/profiles/${userId}`) as Promise<ApiResponse<DoctorProfilesVO>>
 }

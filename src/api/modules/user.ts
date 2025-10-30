@@ -52,5 +52,5 @@ export const logout = async (): Promise<ApiResponse<void>> => {
  */
 export const updateProfile = async (data: Record<string, any>): Promise<ApiResponse<void>> => {
   // 这里默认使用 JSON 提交；http.ts 已处理 baseURL 与拦截器
-  return request.put('/users/updateProfile', data) as Promise<ApiResponse<void>>
+  return request.put('/user/updateProfile', data) as Promise<ApiResponse<void>>
 }

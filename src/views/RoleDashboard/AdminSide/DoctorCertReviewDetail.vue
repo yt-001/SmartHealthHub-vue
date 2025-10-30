@@ -46,7 +46,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { approveDoctorAuth } from '@/api/modules/authReview'
-import { getDoctorProfile } from '@/api/modules/doctor'
+import { getDoctorProfileId } from '@/api/modules/doctor'
 import type { DoctorProfilesVO } from '@/api/types/doctorTypes'
 
 const route = useRoute()
@@ -66,7 +66,7 @@ const loadDetail = async () => {
   loading.value = true
   const start = Date.now()
   try {
-    const { data } = await getDoctorProfile(Number(id))
+    const { data } = await getDoctorProfileId(Number(id))
     const elapsed = Date.now() - start
     if (elapsed < 1000) await sleep(1000 - elapsed)
     detail.value = data || {}
