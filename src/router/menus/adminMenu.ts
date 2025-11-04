@@ -35,7 +35,8 @@ const adminMenu: MenuItem[] = [
     children: [
       { title: "医生认证审核", path: "/portal/admin/doctor-cert-review", icon: "CircleCheck" },
       { title: "患者认证审核", path: "/portal/admin/patient-cert-review", icon: "CircleCheck" },
-      { title: "审核视频", path: "/portal/admin/video-review", icon: "CircleCheck" }
+      { title: "审核视频", path: "/portal/admin/video-review", icon: "CircleCheck" },
+      { title: "审核文章", path: "/portal/admin/article-review", icon: "DocumentChecked" }
     ],
   },
   {

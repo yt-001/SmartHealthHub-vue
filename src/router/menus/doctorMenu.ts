@@ -61,6 +61,14 @@ const doctorMenu: MenuItem[] = [
     ],
   },
   {
+    title: "我的发布",
+    icon: "EditPen",
+    children: [
+      { title: "我的文章", path: "/portal/doctor/my-articles", icon: "Document" },
+      { title: "视频发布", path: "/portal/doctor/video-publish", icon: "VideoCamera" },
+    ],
+  },
+  {
     title: "个人中心",
     icon: "UserFilled",
     children: [

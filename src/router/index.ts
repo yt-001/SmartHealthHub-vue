@@ -58,12 +58,14 @@ const routes: RouteRecordRaw[] = [
       // 审核模块：医生/患者认证审核列表与详情
       { path: 'admin/doctor-cert-review', component: () => import('@/views/RoleDashboard/AdminSide/DoctorCertReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生认证审核' } },
       { path: 'admin/video-review/:id', name: 'AdminVideoReviewDetail', component: () => import('@/views/RoleDashboard/AdminSide/VideoReviewDetail.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '视频审核详情' } },
+      { path: 'admin/article-review/:id', name: 'AdminArticleReviewDetail', component: () => import('@/views/RoleDashboard/AdminSide/ArticleReviewDetail.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '文章审核详情' } },
       { path: 'admin/doctor-cert-review/:id', component: () => import('@/views/RoleDashboard/AdminSide/DoctorCertReviewDetail.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生认证详情' } },
 
       { path: 'admin/patient-cert-review', component: () => import('@/views/RoleDashboard/AdminSide/PatientCertReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '患者认证审核' } },
       { path: 'admin/patient-cert-review/:id', component: () => import('@/views/RoleDashboard/AdminSide/PatientCertReviewDetail.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '患者认证详情' } },
 
       { path: 'admin/video-review', component: () => import('@/views/RoleDashboard/AdminSide/VideoReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '审核视频' } },
+      { path: 'admin/article-review', component: () => import('@/views/RoleDashboard/AdminSide/ArticleReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '审核文章' } },
 
       { path: 'admin/drug-catalog', component: Error404, meta: { roles: ['admin'], title: '药品目录' } },
       { path: 'admin/charge-items', component: Error404, meta: { roles: ['admin'], title: '收费项' } },
@@ -89,6 +91,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'doctor/appointment-review', component: Error404, meta: { roles: ['doctor'], title: '预约审核' } },
       { path: 'doctor/schedule', component: Error404, meta: { roles: ['doctor'], title: '医生排班查看' } },
       { path: 'doctor/statistics', component: Error404, meta: { roles: ['doctor'], title: '患者数据统计可视化' } },
+      // 医生端-我的发布：我的文章、视频发布（占位页面）
+      { path: 'doctor/my-articles', component: () => import('@/views/RoleDashboard/DoctorSide/MyArticles.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '我的文章' } },
+      { path: 'doctor/video-publish', component: () => import('@/views/RoleDashboard/DoctorSide/VideoPublish.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '视频发布' } },
+
       { path: 'doctor/profile', component: Error404, meta: { roles: ['doctor'], title: '医生个人信息' } },
       { path: 'doctor/account', component: Error404, meta: { roles: ['doctor'], title: '账户设置' } },
       { path: 'doctor/change-password', component: Error404, meta: { roles: ['doctor'], title: '密码修改' } },

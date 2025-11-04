@@ -1,6 +1,6 @@
 <template>
   <!-- 视频审核详情页：左右 5/5 开布局；描述三行省略；点击弹窗查看全文 -->
-  <div class="video-detail-page">
+  <div class="video-detail-page" v-loading="loading" element-loading-text="加载中...">
     <el-button link type="primary" class="back-btn" @click="router.back()">返回</el-button>
     <h2 class="page-title">视频审核详情</h2>
 
@@ -142,6 +142,7 @@ const formatTime = (v?: string | number | Date | null) => toDate(v)
 
 const loadDetail = async () => {
   loading.value = true
+  detail.value = {} // 中文注释：进入加载前清空旧数据，避免闪现
   const start = Date.now()
   try {
     const { data } = await fetchVideoReviewDetail(id)
@@ -152,6 +153,7 @@ const loadDetail = async () => {
     const elapsed = Date.now() - start
     if (elapsed < 1000) await sleep(1000 - elapsed)
     ElMessage.error('加载详情失败，请稍后重试')
+    detail.value = {} // 中文注释：失败时保持为空对象
   } finally {
     loading.value = false
   }
