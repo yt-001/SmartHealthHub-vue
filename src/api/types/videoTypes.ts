@@ -56,4 +56,22 @@ export interface VideoReviewQuery {
 export type VideoReviewPageQuery = BasePageQuery<VideoReviewQuery>
 
 /** 分页结果类型：视频列表 */
-export type VideoReviewPageResult = PageResult<HealthVideoVO>
+/** 列表显示对象类型：健康视频审核列表VO（仅列表必要字段） */
+export interface HealthVideoReviewVO {
+  /** 主键ID */
+  id: number
+  /** 视频标题 */
+  title: string
+  /** 作者姓名 */
+  authorName: string
+  /** 视频封面图片URL */
+  coverImageUrl: string
+  /** 视频时长（秒） */
+  duration: number
+  /** 状态：0 草稿 1 已发布 2 已下架 3 审核中 4 未通过审核 */
+  status: 0 | 1 | 2 | 3 | 4
+  /** 创建时间 */
+  createdAt: string
+}
+
+export type VideoReviewPageResult = PageResult<HealthVideoReviewVO>

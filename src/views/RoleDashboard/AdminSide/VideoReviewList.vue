@@ -107,12 +107,12 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchVideoReviewList } from '@/api/modules/video'
-import type { HealthVideoVO } from '@/api/types/videoTypes'
+import type { HealthVideoReviewVO } from '@/api/types/videoTypes'
 
 const router = useRouter()
 
 /** 列表数据与加载状态 */
-const list = ref<HealthVideoVO[]>([])
+const list = ref<HealthVideoReviewVO[]>([])
 const loading = ref(false)
 const total = ref(0)
 /** 接口异常标记 */
@@ -197,7 +197,7 @@ const fetchList = async () => {
     const data: any = resp?.data || {}
     const records = data?.records ?? data?.list ?? []
     const totalNum = data?.total ?? data?.totalCount ?? 0
-    list.value = records as HealthVideoVO[]
+    list.value = records as HealthVideoReviewVO[]
     total.value = totalNum
   } catch (e) {
     console.warn('获取审核视频列表失败：', e)
@@ -244,7 +244,7 @@ const onDateChange = () => {
 
 /** 跳转详情页（预留，占位） */
 const goDetail = (id: number | string) => {
-  router.push(`/portal/admin/video-review/${id}`)
+  router.push({ name: 'AdminVideoReviewDetail', params: { id } })
 }
 
 onMounted(fetchList)
@@ -261,7 +261,7 @@ onMounted(fetchList)
 .w360 { width: 360px; }
 .refresh-btn { margin-left: auto; }
 .table-empty { padding: 24px; color: #909399; text-align: center; }
-.pager { margin-top: 12px; display: flex; justify-content: flex-end; }
+.pager { margin-top: 12px; display: flex; justify-content: center; }
 
 .video-cell { display: flex; align-items: center; gap: 10px; }
 .thumb { width: 80px; height: 60px; background: #f0f2f5; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }

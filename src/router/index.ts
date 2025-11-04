@@ -57,7 +57,7 @@ const routes: RouteRecordRaw[] = [
 
       // 审核模块：医生/患者认证审核列表与详情
       { path: 'admin/doctor-cert-review', component: () => import('@/views/RoleDashboard/AdminSide/DoctorCertReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生认证审核' } },
-      { path: 'admin/video-review/:id', component: () => import('@/views/RoleDashboard/AdminSide/VideoReviewDetail.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '视频审核详情' } },
+      { path: 'admin/video-review/:id', name: 'AdminVideoReviewDetail', component: () => import('@/views/RoleDashboard/AdminSide/VideoReviewDetail.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '视频审核详情' } },
       { path: 'admin/doctor-cert-review/:id', component: () => import('@/views/RoleDashboard/AdminSide/DoctorCertReviewDetail.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生认证详情' } },
 
       { path: 'admin/patient-cert-review', component: () => import('@/views/RoleDashboard/AdminSide/PatientCertReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '患者认证审核' } },
