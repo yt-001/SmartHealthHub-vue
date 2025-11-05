@@ -7,8 +7,8 @@ import RoleDashboard from '@/views/RoleDashboard/RoleDashboard.vue'
 import Error404 from '@/views/CommonErrors/Error404.vue'
 
 const routes: RouteRecordRaw[] = [
-  // 根路径重定向到登录页
-  { path: '/', redirect: '/login' },
+  // 根路径重定向到用户端首页
+  { path: '/', redirect: '/client/home' },
 
   // 登录页
   {
@@ -18,12 +18,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '登录' }
   },
 
-  // 用户独立路由（用户角色专属）
+  // 用户端布局路由（公开访问，不强制登录）
   {
     path: '/client',
-    name: 'ClientHome',
-    component: ClientHome, // 用户端首页
-    meta: { title: '用户首页', roles: ['user'] }
+    component: ClientHome,
+    children: [
+      { path: '', redirect: '/client/home' },
+      { path: 'home', name: 'ClientHome', component: () => import('@/views/ClientSide/Home.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '首页' } },
+      { path: 'health', name: 'ClientHealth', component: () => import('@/views/ClientSide/Health.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '健康' } },
+      { path: 'blog', name: 'ClientBlog', component: () => import('@/views/ClientSide/Blog.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '博客' } },
+      { path: 'team', name: 'ClientTeam', component: () => import('@/views/ClientSide/Team.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '团队' } },
+      { path: 'share', name: 'ClientShare', component: () => import('@/views/ClientSide/Share.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '分享' } }
+    ]
   },
 
   // 管理端统一工作台（管理员/医生共用同一壳组件）
