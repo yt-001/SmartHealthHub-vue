@@ -87,14 +87,15 @@ const handleCoverClick = () => {
 .shh-card {
   width: 100%; /* 让卡片充满栅格列宽 */
   padding: 0.875rem;
-  background-color: #fff;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 10px;
-  box-shadow: 20px 20px 30px rgba(0, 0, 0, .05);
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .shh-title {
   font-weight: 600;
-  color: rgb(31 41 55);
+  color: var(--el-text-color-primary);
 }
 
 /* 新增：封面区域（在标题下方） */
@@ -103,8 +104,8 @@ const handleCoverClick = () => {
   width: 100%;
   /* 将封面高度缩小约 1/3：由 16/9 调整为 16/6 */
   aspect-ratio: 16 / 6;
-  background: #fafafa;
-  border: 1px solid #eee;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -117,14 +118,14 @@ const handleCoverClick = () => {
   object-fit: cover;
 }
 .shh-cover.clickable { cursor: pointer; }
-.shh-cover-placeholder { color: #999; font-size: 12px; }
+.shh-cover-placeholder { color: var(--el-text-color-placeholder); font-size: 12px; }
 
 /* 描述文本：固定两行高度，超出省略，确保卡片布局稳定 */
 .shh-desc {
   margin-top: 1rem;
   font-size: 0.875rem;
   line-height: 1.5rem;
-  color: rgb(75 85 99);
+  color: var(--el-text-color-secondary);
   height: 3rem;      /* 两行固定高度：2 * 1.5rem */
   overflow: hidden;  /* 超出隐藏 */
   display: -webkit-box;
@@ -147,24 +148,24 @@ const handleCoverClick = () => {
 .shh-pref {
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(31 41 55);
+  color: var(--secondary-color);
   text-decoration: underline;
   transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   background-color: transparent;
 }
-.shh-pref:hover { color: rgb(156 163 175); }
+.shh-pref:hover { color: var(--primary-color); }
 .shh-pref:focus { outline: 2px solid transparent; outline-offset: 2px; }
 
 /* 左下角指标样式 */
-.shh-metrics { display: flex; align-items: center; gap: 12px; color: #4b5563; font-size: 12px; }
+.shh-metrics { display: flex; align-items: center; gap: 12px; color: var(--el-text-color-secondary); font-size: 12px; }
 .shh-metrics .metric { display: inline-flex; align-items: center; gap: 6px; }
 
 /* 主要按钮（右侧） */
 .shh-accept {
   font-size: 0.75rem;
   line-height: 1rem;
-  background-color: rgb(17 24 39);
+  background-color: var(--primary-color);
   font-weight: 500;
   border-radius: 0.5rem;
   color: #fff;
@@ -172,7 +173,7 @@ const handleCoverClick = () => {
   border: none;
   transition: all .15s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.shh-accept:hover { background-color: rgb(55 65 81); }
+.shh-accept:hover { background-color: var(--button-hover-bg); }
 .shh-accept:focus { outline: 2px solid transparent; outline-offset: 2px; }
 
 /* 大图弹窗容器 */

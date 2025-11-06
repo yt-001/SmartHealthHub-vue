@@ -1,0 +1,14 @@
+:root {
+  --primary-color: #2E8B57;       /* 主色调 - 深绿 */
+  --secondary-color: #70B77E;     /* 辅助色 - 浅绿 */
+  --accent-yellow: #FFD966;       /* 点缀色 - 黄 */
+  --accent-pink: #E07B91;         /* 点缀色 - 粉 */
+  --accent-purple: #8C52FF;        /* 点缀色 - 紫 */
+  --accent-coral: #FF6F91;        /* 点缀色 - 珊瑚红 */
+
+  /* 语义化颜色，方便使用 */
+  --el-color-primary: var(--primary-color);
+  --brand-color-light: var(--secondary-color);
+  --highlight-color: var(--accent-yellow);
+  --button-hover-bg: #256d45; /* 主色调的深色变体 */
+}

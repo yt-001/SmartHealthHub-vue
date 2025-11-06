@@ -28,3 +28,27 @@ export function approveArticleReview(id: string | number, status: 0 | 1 | 2 | 3 
   // 中文注释：后端使用 @RequestParam Byte status，因此通过 params 传参
   return request.put(path, {}, { params: { status } }) as Promise<ApiResponse<string>>
 }
+
+/**
+ * 用户端：公开健康文章分页列表
+ * - 后端接口：POST /health-articles/public/page
+ * - 入参：{ pageNum, pageSize, sortField, sortDirection, query }
+ * - 出参：{ total, list, pageNum, pageSize, pages }
+ */
+export function fetchPublicArticlesPage(params: {
+  pageNum: number
+  pageSize: number
+  sortField?: string
+  sortDirection?: 'ASC' | 'DESC'
+  query?: Record<string, any>
+}) {
+  return request.post('/health-articles/public/page', params) as Promise<
+    ApiResponse<{
+      total: number
+      list: HealthArticleVO[]
+      pageNum: number
+      pageSize: number
+      pages: number
+    }>
+  >
+}

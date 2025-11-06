@@ -15,6 +15,7 @@ import { createPinia } from 'pinia'
 
 // 引入全局样式
 import './styles/index.scss'
+import './assets/styles/theme.css' // 引入自定义主题色
 
 const app = createApp(App)
 

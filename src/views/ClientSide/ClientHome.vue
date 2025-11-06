@@ -113,8 +113,8 @@ const onMenuCommand = async (cmd: string) => {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #ffffff;
-  border-bottom: 1px solid #eef0f2;
+  background: var(--el-bg-color-overlay);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 /* 三栏：左品牌 / 中导航 / 右用户信息 */
@@ -128,7 +128,7 @@ const onMenuCommand = async (cmd: string) => {
   justify-self: start;
   font-size: 20px;
   font-weight: 700;
-  color: #1f2d3d;
+  color: var(--primary-color);
   letter-spacing: 0.2px;
   cursor: pointer;
 }
@@ -141,30 +141,30 @@ const onMenuCommand = async (cmd: string) => {
   gap: 28px; /* 模块间距 */
 }
 .nav-item {
-  color: #4c5564;
+  color: var(--el-text-color-primary);
   text-decoration: none;
   font-weight: 600;
   padding: 6px 10px;
   border-radius: 8px;
   transition: background-color .2s ease, color .2s ease;
 }
-.nav-item:hover { background-color: #f4f6f8; color: #1f2d3d; }
-.nav-item.active { background-color: #e8f7f3; color: #27b397; }
+.nav-item:hover { background-color: var(--el-fill-color-light); color: var(--primary-color); }
+.nav-item.active { background-color: var(--el-color-primary-light-9); color: var(--primary-color); }
 
 /* 右侧登录/用户信息 */
 .right-slot { justify-self: end; display: flex; align-items: center; }
 .login-btn {
   appearance: none;
-  border: 1px solid #27b397;
+  border: 1px solid var(--primary-color);
   background: transparent;
-  color: #27b397;
+  color: var(--primary-color);
   padding: 6px 14px;
   border-radius: 20px;
   font-weight: 600;
   cursor: pointer;
   transition: all .2s ease;
 }
-.login-btn:hover { background: #27b397; color: #fff; }
+.login-btn:hover { background: var(--primary-color); color: #fff; }
 
 .user-entry {
   display: inline-flex;
@@ -175,15 +175,16 @@ const onMenuCommand = async (cmd: string) => {
   border-radius: 20px;
   transition: background-color .2s ease;
 }
-.user-entry:hover { background: #f4f6f8; }
-.nickname { color: #1f2d3d; font-weight: 600; }
-.caret { color: #8b95a1; }
+.user-entry:hover { background: var(--el-fill-color-light); }
+.nickname { color: var(--el-text-color-primary); font-weight: 600; }
+.caret { color: var(--el-text-color-secondary); }
 
 /* 主体内容容器（全宽，无边距） */
 .client-main {
   width: 100%;
   margin: 0;
   padding: 0;
+  background: var(--el-bg-color-page);
 }
 .fullscreen-loading {
   position: fixed;
@@ -199,12 +200,12 @@ const onMenuCommand = async (cmd: string) => {
 .spinner {
   width: 44px;
   height: 44px;
-  border: 4px solid #e6f4f1;
-  border-top-color: #27b397;
+  border: 4px solid var(--el-color-primary-light-8);
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }
-.loading-text { margin-top: 12px; color: #1f2d3d; font-weight: 600; }
+.loading-text { margin-top: 12px; color: var(--el-text-color-primary); font-weight: 600; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* 渐隐过渡 */

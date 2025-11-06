@@ -32,58 +32,149 @@
     <div class="section-title">热门文章</div>
     <div class="articles-grid">
       <MediaCard
-        v-for="it in hotArticles"
+        v-for="it in articles"
         :key="it.id"
         :title="it.title"
         :description="it.summary"
-        :cover-url="it.cover"
+        :cover-url="it.coverImageUrl"
         primary-text="查看详情"
         :show-edit-left="false"
-        :view-count="it.views"
-        :author-name="it.author"
+        :view-count="it.viewCount || 0"
+        :author-name="it.authorName || ''"
         :enable-cover-preview="true"
         @primary="onOpenArticle(it)"
       />
+    </div>
+
+    <!-- 底部加载指示器（动态提示与拉伸效果） -->
+    <div class="infinite-footer" :style="footerStyle">
+      <div class="footer-content">
+        <el-icon v-if="loadingMore" class="spin"><Loading /></el-icon>
+        <span>{{ footerTip }}</span>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-// 首页布局与占位数据（中文注释）
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { Loading } from '@element-plus/icons-vue'
 import banner1 from '@/assets/57-bg.png'
 import banner2 from '@/assets/PersonalHome-Page.png'
 import MediaCard from '@/components/MediaCard.vue'
+import { fetchPublicArticlesPage } from '@/api/modules/article'
+import type { HealthArticleVO } from '@/api/types/articleTypes'
 
-// 轮播图数据（占位）
+// 轮播图与热点数据（保留静态）
 const banners = ref([
   { src: banner1, title: '关爱健康，从今天开始', subtitle: '科学管理，智慧守护您的每一天' },
   { src: banner2, title: '社区卫生服务', subtitle: '连接医生与用户，打造健康生态' },
 ])
-
-// 热点榜单（1-10，占位）
 const hotTopics = ref(
   Array.from({ length: 10 }).map((_, i) => ({ id: i + 1, title: `热点主题示例 ${i + 1}` }))
 )
 
-// 热门文章（模拟数据）
-const hotArticles = ref([
-  { id: 1, title: '如何防控近视', cover: 'https://picsum.photos/seed/near/640/360', summary: '青少年近视的成因与防控策略...', views: 1283, author: '张医生' },
-  { id: 2, title: '冬季呼吸道防护指南', cover: 'https://picsum.photos/seed/winter/640/360', summary: '关于冬季常见呼吸道疾病与预防...', views: 842, author: '李医生' },
-  { id: 3, title: '健康饮食与慢病管理', cover: 'https://picsum.photos/seed/food/640/360', summary: '均衡饮食的核心原则与实践建议...', views: 1452, author: '赵医生' },
-  { id: 4, title: '睡眠与免疫力', cover: 'https://picsum.photos/seed/sleep/640/360', summary: '提升睡眠质量有助于增强免疫力...', views: 966, author: '王医生' },
-  { id: 5, title: '春季过敏防护手册', cover: 'https://picsum.photos/seed/allergy/640/360', summary: '识别常见过敏源并做好日常防护...', views: 731, author: '周医生' },
-  { id: 6, title: '慢病运动处方', cover: 'https://picsum.photos/seed/exercise/640/360', summary: '为慢病人群制定科学的运动方案...', views: 1089, author: '钱医生' },
-  { id: 7, title: '心理健康与压力管理', cover: 'https://picsum.photos/seed/stress/640/360', summary: '识别压力信号并进行有效管理...', views: 654, author: '孙医生' },
-  { id: 8, title: '儿童疫苗接种指南', cover: 'https://picsum.photos/seed/vaccine/640/360', summary: '掌握关键接种节点与注意事项...', views: 2012, author: '吴医生' },
-  { id: 9, title: '夏季防暑与补水', cover: 'https://picsum.photos/seed/summer/640/360', summary: '高温天气的健康守护建议...', views: 433, author: '郑医生' },
-  { id: 10, title: '居家急救常识', cover: 'https://picsum.photos/seed/firstaid/640/360', summary: '掌握常见居家急救的正确方法...', views: 1588, author: '王医生' },
-  { id: 11, title: '心血管健康管理', cover: 'https://picsum.photos/seed/heart/640/360', summary: '心血管疾病的早期识别与干预...', views: 1204, author: '刘医生' },
-  { id: 12, title: '眼部护理基础', cover: 'https://picsum.photos/seed/eye/640/360', summary: '日常眼部护理与用眼卫生...', views: 587, author: '唐医生' },
-])
+// 文章列表与分页状态
+const articles = ref<HealthArticleVO[]>([])
+const pageNum = ref(1)
+const pageSize = 10
+const hasMore = ref(true)
+const loadingMore = ref(false)
 
-// 打开文章详情（占位）
-const onOpenArticle = (it: any) => {
+// 拉动加载交互状态
+const isAtBottom = ref(false)
+const pullDistance = ref(0)
+const isPulling = ref(false)
+let releaseTimer: number | null = null
+const PULL_THRESHOLD = 60 // 触发加载的拉动阈值
+const FRICTION_FACTOR = 0.4 // 拉动阻力系数
+const FOOTER_BASE_HEIGHT = 64 // 底部指示器基础高度
+
+// 动态计算底部指示器样式（应用拉伸和回弹动画）
+const footerStyle = computed(() => ({
+  height: `${FOOTER_BASE_HEIGHT + pullDistance.value}px`,
+  transition: isPulling.value ? 'none' : `height 0.4s cubic-bezier(.17,1.51,.63,1.38)`,
+}))
+
+// 动态计算底部提示文案
+const footerTip = computed(() => {
+  if (!hasMore.value) return '没有更多数据了'
+  if (loadingMore.value) return '正在加载...'
+  if (pullDistance.value >= PULL_THRESHOLD) return '释放立即加载'
+  return '继续下拉加载更多'
+})
+
+// 加载更多文章
+const loadMore = async () => {
+  if (!hasMore.value || loadingMore.value) return
+  loadingMore.value = true
+  const minMs = 1000 // 最小加载动画时长
+  try {
+    const [res] = await Promise.all([
+      fetchPublicArticlesPage({ pageNum: pageNum.value, pageSize, query: {} }),
+      new Promise<void>(resolve => setTimeout(resolve, minMs))
+    ])
+    const data: any = res as any
+    const list: HealthArticleVO[] = data?.data?.list || []
+    if (list.length > 0) {
+      articles.value.push(...list)
+      pageNum.value += 1
+      hasMore.value = list.length === pageSize
+    } else {
+      hasMore.value = false
+    }
+  } finally {
+    loadingMore.value = false
+  }
+}
+
+// 释放拉动，触发判断
+const releasePull = () => {
+  isPulling.value = false
+  if (pullDistance.value >= PULL_THRESHOLD && hasMore.value) {
+    loadMore()
+  }
+  pullDistance.value = 0
+  if (releaseTimer) clearTimeout(releaseTimer)
+}
+
+// 监听滚轮事件，实现拉动效果
+const handleWheel = (event: WheelEvent) => {
+  // 仅在页面底部、向下滚动且有更多数据时触发拉动
+  if (isAtBottom.value && event.deltaY > 0 && hasMore.value) {
+    // 阻止页面因拉动而产生的默认滚动（例如在某些设备上的"橡皮筋"效果）
+    event.preventDefault()
+    isPulling.value = true
+    pullDistance.value += event.deltaY * FRICTION_FACTOR
+
+    if (releaseTimer) clearTimeout(releaseTimer)
+    releaseTimer = window.setTimeout(releasePull, 250) // 停止滚动 250ms 后释放
+  }
+}
+
+// 监听滚动位置
+const handleScroll = () => {
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+  const windowHeight = window.innerHeight
+  const docHeight = document.documentElement.scrollHeight
+  isAtBottom.value = scrollTop + windowHeight >= docHeight - 2 // 接近底部 2px 即视为触底
+}
+
+onMounted(() => {
+  loadMore() // 首次加载
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  // passive: false 确保 preventDefault 生效
+  window.addEventListener('wheel', handleWheel, { passive: false })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('wheel', handleWheel)
+  if (releaseTimer) clearTimeout(releaseTimer)
+})
+
+// 打开文章详情（保留）
+const onOpenArticle = (it: HealthArticleVO) => {
   console.log('打开文章详情', it)
 }
 </script>
@@ -97,7 +188,7 @@ const onOpenArticle = (it: any) => {
   padding: 16px 20px; /* 顶部区域可留少量内边距，避免紧贴边框 */
   align-items: stretch; /* 两侧卡片高度拉伸对齐 */
 }
-.carousel-wrap { background: #fff; border: 1px solid #eef0f2; border-radius: 8px; overflow: hidden; /* 高度由 el-carousel 的绑定值驱动 */ }
+.carousel-wrap { background: var(--el-bg-color-page); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; overflow: hidden; /* 高度由 el-carousel 的绑定值驱动 */ }
 /* 让 el-carousel 撑满父容器高度（scoped 下使用 :deep 选择器） */
 :deep(.el-carousel) { height: 100%; }
 :deep(.el-carousel__container) { height: 100%; }
@@ -112,36 +203,37 @@ const onOpenArticle = (it: any) => {
   position: absolute;
   left: 0; right: 0; bottom: 0;
   padding: 16px 20px;
-  background: linear-gradient(to top, rgba(0,0,0,0.35), rgba(0,0,0,0.0));
+  background: linear-gradient(to top, rgba(0,0,0,0.45), rgba(0,0,0,0.0));
   color: #fff;
 }
 .banner-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
 .banner-sub { font-size: 14px; opacity: .9; }
 
 .hot-list {
-  background: #fff;
-  border: 1px solid #eef0f2;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
   padding: 12px 12px 8px;
   display: flex;
   flex-direction: column;
 }
-.hot-header { font-weight: 700; color: #1f2d3d; margin: 4px 6px 8px; }
+.hot-header { font-weight: 700; color: var(--primary-color); margin: 4px 6px 8px; }
 .hot-items { list-style: none; margin: 0; padding: 0; flex: 1; }
 .hot-item { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-radius: 6px; }
-.hot-item:hover { background: #f7f9fa; }
+.hot-item:hover { background: var(--el-fill-color-light); }
 .rank {
   width: 22px; height: 22px; line-height: 22px; text-align: center;
   border-radius: 50%;
   font-size: 12px; font-weight: 700;
-  color: #27b397; background: #e8f7f3;
+  color: var(--accent-pink); background: rgba(224, 123, 145, 0.1);
 }
-.hot-link { color: #4c5564; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hot-link:hover { color: #1f2d3d; }
+.hot-item:nth-child(-n+3) .rank { color: var(--accent-yellow); background: rgba(255, 217, 102, 0.15); }
+.hot-link { color: var(--el-text-color-regular); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hot-link:hover { color: var(--primary-color); }
 
-/* 热门文章区域（网格占位） */
+/* 热门文章区域 */
 .articles-section { padding: 0 20px 24px; }
-.section-title { font-weight: 700; color: #1f2d3d; margin: 6px 0 10px; }
+.section-title { font-weight: 700; color: var(--primary-color); margin: 6px 0 10px; }
 .articles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 320px)); /* 动态列宽：280-320px，紧密相靠 */
@@ -158,6 +250,12 @@ const onOpenArticle = (it: any) => {
 
 /* 小屏优化：热点区落到轮播下方 */
 @media (max-width: 960px) {
-  .top-section { grid-template-columns: 1fr; }
+  .top-section { grid-template-columns: 1fr;   }
 }
+
+/* 无限下拉加载底部指示器 */
+.infinite-footer { display: flex; justify-content: center; align-items: center; }
+.footer-content { display: flex; align-items: center; gap: 8px; color: var(--el-text-color-secondary); font-size: 14px; }
+.footer-content .spin { animation: spin 1s linear infinite; }
+
 </style>
