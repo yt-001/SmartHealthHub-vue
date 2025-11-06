@@ -5,7 +5,7 @@ import type { BasePageQuery } from '../types'
 
 export interface UserItem {
   /** 用户ID */
-  id: number
+  id: string
   /** 登录账号 */
   username: string
   /** 头像地址 */

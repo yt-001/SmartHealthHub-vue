@@ -60,6 +60,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'admin/patient-manage', component: () => import('@/views/RoleDashboard/AdminSide/PatientManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '患者管理' } },
       { path: 'admin/user-manage', component: () => import('@/views/RoleDashboard/AdminSide/UserManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '用户管理' } },
       { path: 'admin/case-archive-manage', component: () => import('@/views/RoleDashboard/AdminSide/CaseArchiveManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '病例档案管理' } },
+      { path: 'admin/carousel-items', component: () => import('@/views/RoleDashboard/AdminSide/CarouselItemsManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '首页图片管理' } },
 
       // 审核模块：医生/患者认证审核列表与详情
       { path: 'admin/doctor-cert-review', component: () => import('@/views/RoleDashboard/AdminSide/DoctorCertReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生认证审核' } },

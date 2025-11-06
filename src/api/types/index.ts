@@ -55,7 +55,7 @@ export interface PageResult<T = any> {
 
 /** 常用工具类型 */
 export type Nullable<T> = T | null
-export type ID = number | string
+export type ID = string
 
 /**
  * 兼容导出别名（保持对旧代码/示例的兼容，不破坏现有 import）

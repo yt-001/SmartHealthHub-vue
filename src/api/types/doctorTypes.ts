@@ -8,7 +8,7 @@ import type { BasePageQuery } from '../types'
 /** 医生基础信息（列表项） */
 export interface DoctorItem {
   /** 医生ID */
-  id: number
+  id: string
   /** 真实姓名 */
   realName: string
   /** 手机号 */
@@ -18,7 +18,7 @@ export interface DoctorItem {
   /** 职称 */
   title: string
   /** 科室ID */
-  deptId: number
+  deptId: string
   /** 擅长领域 */
   specialty: string
   /** 执业证书编号 */
@@ -36,7 +36,7 @@ export interface DoctorProfilesVO {
   /** 真实姓名（部分接口会返回） */
   realName?: string
   /** 科室ID */
-  deptId: number
+  deptId: string
   /** 职称 */
   title: string
   /** 擅长领域 */
@@ -66,7 +66,7 @@ export interface DoctorListFilter {
   /** 职称 */
   title?: string
   /** 科室ID */
-  deptId?: number
+  deptId?: string
   /** 擅长领域 */
   specialty?: string
   /** 账号状态: 0正常 1锁定 2未激活 3已注销 */
@@ -79,7 +79,7 @@ export type DoctorListParams = BasePageQuery<DoctorListFilter>
 /** 认证列表项（用于表格展示） */
 export interface DoctorAuthListItem {
   /** 医生档案ID（后端 Long） */
-  id: number
+  id: string
   /** 真实姓名 */
   realName: string
   /** 手机号 */
@@ -87,7 +87,7 @@ export interface DoctorAuthListItem {
   /** 职称 */
   title: string
   /** 科室ID */
-  deptId: number
+  deptId: string
   /** 医师执业证号 */
   qualificationNo: string
   /** 提交时间（后端 LocalDateTime -> 前端字符串） */

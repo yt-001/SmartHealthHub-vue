@@ -85,8 +85,8 @@ const handleCoverClick = () => {
 <style scoped>
 /* 外层卡片样式（基于提供的 cookie card 样式改造，统一前缀防冲突） */
 .shh-card {
-  max-width: 420px;
-  padding: 1rem;
+  width: 100%; /* 让卡片充满栅格列宽 */
+  padding: 0.875rem;
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 20px 20px 30px rgba(0, 0, 0, .05);
@@ -101,7 +101,8 @@ const handleCoverClick = () => {
 .shh-cover {
   margin-top: 12px;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  /* 将封面高度缩小约 1/3：由 16/9 调整为 16/6 */
+  aspect-ratio: 16 / 6;
   background: #fafafa;
   border: 1px solid #eee;
   border-radius: 8px;
@@ -118,12 +119,18 @@ const handleCoverClick = () => {
 .shh-cover.clickable { cursor: pointer; }
 .shh-cover-placeholder { color: #999; font-size: 12px; }
 
-/* 描述文本 */
+/* 描述文本：固定两行高度，超出省略，确保卡片布局稳定 */
 .shh-desc {
   margin-top: 1rem;
   font-size: 0.875rem;
   line-height: 1.5rem;
   color: rgb(75 85 99);
+  height: 3rem;      /* 两行固定高度：2 * 1.5rem */
+  overflow: hidden;  /* 超出隐藏 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;        /* 限制为两行 */
+  -webkit-box-orient: vertical; /* 垂直排布以支持 clamp */
+  word-break: break-word;
 }
 
 /* 操作区（左右两侧） */

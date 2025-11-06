@@ -1,11 +1,31 @@
 // 基于 axios 的请求工具（中文注释）
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
+import JSONbig from 'json-bigint'
+
+// 配置 json-bigint，将所有超长整型（bigint）解析为字符串，解决雪花ID精度丢失问题
+const JSONbigString = JSONbig({ storeAsString: true })
 
 const service: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
   headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-  withCredentials: true // 跨域请求时发送 Cookie
+  withCredentials: true, // 跨域请求时发送 Cookie
+  // 添加响应转换器，在默认的 JSON.parse 前执行
+  transformResponse: [
+    (data) => {
+      // 后端返回的是 JSON 字符串，在此用 json-bigint 进行解析
+      if (typeof data === 'string' && data) {
+        try {
+          return JSONbigString.parse(data)
+        } catch (e) {
+          // 如果解析失败，返回原始数据，后续的拦截器可能会处理
+          return data
+        }
+      }
+      // 如果不是字符串（例如已经是对象了），直接返回
+      return data
+    }
+  ]
 })
 
 /**

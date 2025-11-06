@@ -4,7 +4,7 @@ import type { BasePageQuery, PageResult } from './index'
 /** 单个文章对象（与后端 HealthArticleVO 对齐） */
 export interface HealthArticleVO {
   /** 主键ID */
-  id: number | string
+  id: string
   /** 文章标题 */
   title: string
   /** 文章摘要（后端字段：summary） */
@@ -14,11 +14,11 @@ export interface HealthArticleVO {
   /** 文章封面图片URL */
   coverImageUrl: string
   /** 作者ID */
-  authorId: number
+  authorId: string
   /** 作者姓名 */
   authorName: string
   /** 科室ID */
-  deptId: number
+  deptId: string
   /** 科室名称 */
   deptName: string
   /** 文章分类/标签 */
@@ -41,7 +41,7 @@ export interface HealthArticleVO {
 export interface ArticleReviewQuery {
   title?: string
   authorName?: string
-  deptId?: number | null
+  deptId?: string | null
   category?: string
   isTop?: 0 | 1 | null
   /** 固定状态条件：可选传单个 status 或传递 statusList */
@@ -58,7 +58,7 @@ export type ArticleReviewPageQuery = BasePageQuery<ArticleReviewQuery>
 /** 列表显示对象类型：健康文章审核列表VO（仅列表必要字段） */
 export interface HealthArticleReviewVO {
   /** 主键ID */
-  id: number
+  id: string
   /** 文章标题 */
   title: string
   /** 作者姓名 */

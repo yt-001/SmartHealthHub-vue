@@ -1,6 +1,6 @@
 <template>
   <!-- 医生端-视频发布：使用 MediaCard 展示占位数据 -->
-  <div style="padding:16px; display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px;">
+  <div style="padding:16px; display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 320px)); gap: 16px; justify-content: start;">
     <MediaCard
       v-for="it in demoList"
       :key="it.id"

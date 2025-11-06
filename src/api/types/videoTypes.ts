@@ -4,7 +4,7 @@ import type { BasePageQuery, PageResult } from './index'
 /** 单个视频对象（与后端 HealthVideoVO 对齐，补充 id/createdAt/updatedAt） */
 export interface HealthVideoVO {
   /** 主键ID */
-  id: number | string
+  id: string
   /** 视频标题 */
   title: string
   /** 视频描述 */
@@ -16,7 +16,7 @@ export interface HealthVideoVO {
   /** 视频时长（秒） */
   duration: number
   /** 作者ID */
-  authorId: number
+  authorId: string
   /** 作者姓名 */
   authorName: string
   /** 分类/标签 */
@@ -41,7 +41,7 @@ export interface HealthVideoVO {
 export interface VideoReviewQuery {
   title?: string
   authorName?: string
-  deptId?: number | null
+  deptId?: string | null
   category?: string
   isTop?: 0 | 1 | null
   /** 固定状态条件：可选传单个 status 或传递 statusList */
@@ -59,7 +59,7 @@ export type VideoReviewPageQuery = BasePageQuery<VideoReviewQuery>
 /** 列表显示对象类型：健康视频审核列表VO（仅列表必要字段） */
 export interface HealthVideoReviewVO {
   /** 主键ID */
-  id: number
+  id: string
   /** 视频标题 */
   title: string
   /** 作者姓名 */

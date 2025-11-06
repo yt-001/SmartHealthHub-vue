@@ -5,7 +5,7 @@ import type { BasePageQuery } from '../types'
 
 export interface PatientItem {
   /** 患者ID */
-  id: number
+  id: string
   /** 登录账号 */
   username: string
   /** 真实姓名 */
@@ -72,7 +72,7 @@ export interface PatientAuthenticationDTO {
 /** 认证列表项（用于表格展示） */
 export interface PatientAuthListItem {
   /** 患者档案ID（后端 Long） */
-  id: number
+  id: string
   /** 真实姓名 */
   realName: string
   /** 手机号 */

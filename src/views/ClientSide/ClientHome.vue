@@ -41,15 +41,24 @@
   <main class="client-main">
     <router-view />
   </main>
+
+  <!-- 退出登录全屏加载动画 -->
+  <transition name="fade">
+    <div v-if="isLoggingOut" class="fullscreen-loading">
+      <div class="spinner"></div>
+      <div class="loading-text">正在退出...</div>
+    </div>
+  </transition>
 </template>
 
 <script setup lang="ts">
 // 用户端布局：顶部导航 + 子路由承载（中文注释）
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
+import { logout as apiLogout } from '@/api/modules/user'
 
 const router = useRouter()
 const store = useUserStore()
@@ -58,6 +67,9 @@ const store = useUserStore()
 const isLoggedIn = computed(() => store.isLoggedIn)
 const avatarUrl = computed(() => store.userInfo?.avatarUrl || '')
 const displayName = computed(() => store.userInfo?.realName || store.userInfo?.username || '用户')
+
+// 退出登录加载态
+const isLoggingOut = ref(false)
 
 // 头像占位：姓名首字的大写（中文取首字）
 const initials = computed(() => {
@@ -73,9 +85,24 @@ const onMenuCommand = async (cmd: string) => {
     return
   }
   if (cmd === 'logout') {
+    isLoggingOut.value = true
+    const minDurationMs = 1000
+    const startMs = Date.now()
+    try {
+      await Promise.all([
+        apiLogout().catch(() => {}),
+        new Promise(resolve => setTimeout(resolve, minDurationMs))
+      ])
+    } finally {
+      const elapsed = Date.now() - startMs
+      if (elapsed < minDurationMs) {
+        await new Promise(resolve => setTimeout(resolve, minDurationMs - elapsed))
+      }
+    }
     store.clearUser()
     ElMessage.success('已退出登录')
     await router.push('/client/home')
+    isLoggingOut.value = false
   }
 }
 </script>
@@ -158,4 +185,30 @@ const onMenuCommand = async (cmd: string) => {
   margin: 0;
   padding: 0;
 }
+.fullscreen-loading {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(1px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 999;
+}
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #e6f4f1;
+  border-top-color: #27b397;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+.loading-text { margin-top: 12px; color: #1f2d3d; font-weight: 600; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 渐隐过渡 */
+.fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
 </style>

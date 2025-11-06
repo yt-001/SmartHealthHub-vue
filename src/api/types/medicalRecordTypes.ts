@@ -7,7 +7,7 @@ import type { BasePageQuery } from '../types'
 /** 列表项 VO：MedicalRecordPageVO */
 export interface MedicalRecordItem {
   /** 病例ID */
-  id: number
+  id: string
   /** 患者姓名 */
   patientName: string
   /** 医生姓名 */

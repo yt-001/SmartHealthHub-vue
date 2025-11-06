@@ -31,7 +31,7 @@ export type ShiftCode = 'AM' | 'PM' | 'FULL'
 
 /** 医生排班条目（与后端示例字段一致） */
 export interface DoctorScheduleItem {
-  id: number
+  id: string
   createdAt: string
   updatedAt: string
   /** 排班日期，格式：YYYY-MM-DD */
@@ -71,19 +71,19 @@ export interface DoctorScheduleCalendarQuery {
   /** 排班日期结束（YYYY-MM-DD） */
   endDate?: string
   /** 医生ID */
-  doctorId?: number
+  doctorId?: string
   /** 科室ID */
-  deptId?: number
+  deptId?: string
 }
 
 /** ================== 新增：医生科室信息，用于排班选择 ================== */
 export interface DoctorDeptVO {
   /** 医生ID */
-  doctorId: number
+  doctorId: string
   /** 医生姓名 */
   doctorName: string
   /** 科室ID */
-  deptId: number
+  deptId: string
   /** 科室名称 */
   deptName: string
   /** 诊室编号 */
@@ -93,9 +93,9 @@ export interface DoctorDeptVO {
 /** ================== 新增/编辑：医生排班创建请求体 ================== */
 export interface DoctorScheduleCreateDTO {
   /** 医生ID */
-  doctorId: number
+  doctorId: string
   /** 科室ID */
-  deptId: number
+  deptId: string
   /** 排班日期 */
   scheduleDate: string
   /** 班次编码：AM 上午 PM 晚班 FULL 全天等 */
