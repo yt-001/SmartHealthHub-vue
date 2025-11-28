@@ -1,14 +1,43 @@
+/* 全局主题色变量定义 - 现代医疗绿 (Emerald) */
 :root {
-  --primary-color: #2E8B57;       /* 主色调 - 深绿 */
-  --secondary-color: #70B77E;     /* 辅助色 - 浅绿 */
-  --accent-yellow: #FFD966;       /* 点缀色 - 黄 */
-  --accent-pink: #E07B91;         /* 点缀色 - 粉 */
-  --accent-purple: #8C52FF;        /* 点缀色 - 紫 */
-  --accent-coral: #FF6F91;        /* 点缀色 - 珊瑚红 */
+  /* 核心主色 Emerald-600 */
+  --primary-color: #059669;
+  /* 悬停深色 Emerald-700 */
+  --primary-hover: #047857;
+  /* 点击/激活深色 Emerald-800 */
+  --primary-active: #065f46;
+  /* 浅色背景 Emerald-50 */
+  --primary-light-9: #ecfdf5;
+  /* 浅色高亮 Emerald-100 */
+  --primary-light-8: #d1fae5;
+  /* 辅助色 Emerald-200 */
+  --primary-light-7: #a7f3d0;
 
-  /* 语义化颜色，方便使用 */
+  /* 文字颜色 */
+  --text-main: #1f2937;       /* Gray-800 */
+  --text-secondary: #4b5563;  /* Gray-600 */
+  --text-placeholder: #9ca3af; /* Gray-400 */
+
+  /* 背景色 */
+  --bg-color-page: #f9fafb;   /* Gray-50 */
+  --bg-color-white: #ffffff;
+
+  /* Element Plus 变量映射 - 确保组件库使用同一套色系 */
   --el-color-primary: var(--primary-color);
-  --brand-color-light: var(--secondary-color);
-  --highlight-color: var(--accent-yellow);
-  --button-hover-bg: #256d45; /* 主色调的深色变体 */
+  --el-color-primary-light-3: #34d399; /* Emerald-400 */
+  --el-color-primary-light-5: #6ee7b7; /* Emerald-300 */
+  --el-color-primary-light-7: var(--primary-light-7);
+  --el-color-primary-light-8: var(--primary-light-8);
+  --el-color-primary-light-9: var(--primary-light-9);
+  --el-color-primary-dark-2: var(--primary-hover);
+}
+
+/* 覆盖 Element Plus 默认按钮圆角，更柔和 */
+.el-button {
+  --el-border-radius-base: 8px;
+}
+
+/* 输入框圆角 */
+.el-input__wrapper {
+  border-radius: 8px;
 }

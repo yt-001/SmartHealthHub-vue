@@ -9,14 +9,14 @@
 }
 
 .container {
-  /* 将主题变量作用在组件根容器，保证本组件内任何元素都能读取 */
-  --primary-color: #27b397;
-  --text-dark: #0f172a;
-  --text-light: #94a3b8;
-  --extra-light: #ececec;
+  /* 优先使用全局变量，提供回退值 */
+  --primary-color: var(--el-color-primary, #059669);
+  --text-dark: var(--text-main, #1f2937);
+  --text-light: var(--text-secondary, #9ca3af);
+  --extra-light: #f3f4f6; /* Gray 100 */
   --white: #ffffff;
 
-  font-family: "Poppins", sans-serif; /* 组件内字体 */
+  font-family: 'Inter', "Poppins", sans-serif; /* 组件内字体 */
 }
 
 /* 容器与布局 */
@@ -60,6 +60,8 @@ form {
 form h1 {
   font-size: 2.5rem;
   color: var(--primary-color);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
 }
 
 /* 社交按钮行 */
@@ -67,26 +69,37 @@ form h1 {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin: 2rem 0;
+  margin: 1.5rem 0;
 }
 
 .socials a {
-  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   text-decoration: none;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   color: var(--text-dark);
-  border: 1px solid var(--text-light);
-  border-radius: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+.socials a:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background-color: var(--el-color-primary-light-9);
 }
 
 form span {
   color: var(--text-light);
   font-size: 0.9rem;
+  margin-bottom: 0.5rem;
 }
 
 .form__group {
   position: relative;
-  margin: 0.5rem 0;
+  margin: 0.8rem 0;
   width: 100%;
 }
 
@@ -94,33 +107,40 @@ form span {
 .form__group input,
 .form__row input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.8rem 1rem;
   border: none;
   outline: none;
-  font-size: 1rem;
+  font-size: 0.95rem;
   background-color: var(--extra-light);
-  border-bottom: 1px solid var(--primary-color);
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
-
-.forgot__password {
-  /* 放在密码输入右侧，保持单行 */
-  margin-left: 12px;
-  text-decoration: none;
-  font-size: 0.9rem;
-  color: var(--text-light);
-  border-bottom: 1px solid var(--text-light);
-  white-space: nowrap;
+.form__group input:focus,
+.form__row input:focus {
+  background-color: #fff;
+  box-shadow: 0 0 0 2px var(--primary-color);
 }
 
 .form__container button {
-  padding: 0.75rem 4rem;
+  padding: 0.8rem 4rem;
+  margin-top: 1.5rem;
   border: none;
   outline: none;
   font-size: 1rem;
+  font-weight: 600;
   color: var(--white);
   border-radius: 2rem;
   background-color: var(--primary-color);
   cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+}
+.form__container button:hover {
+  background-color: var(--primary-hover, #047857);
+  transform: translateY(-1px);
+}
+.form__container button:active {
+  transform: translateY(0);
 }
 
 /* 登录角色单选组 */
@@ -141,6 +161,7 @@ form span {
 }
 .role-group input[type="radio"] {
   cursor: pointer;
+  accent-color: var(--primary-color);
 }
 
 /* 单行展示密码输入与忘记密码 */
@@ -154,7 +175,7 @@ form span {
 /* 原生输入框仍保持你的默认外观，仅增加右侧内边距避免文字覆盖 */
 .form__row .pwd-input {
   flex: 1;
-  padding-right: 88px; /* 为空出“忘记密码？”点击区域 */
+  padding-right: 90px; /* 为空出“忘记密码？”点击区域 */
 }
 /* 将“忘记密码？”放到输入框内部右侧 */
 .forgot__inside {
@@ -162,16 +183,19 @@ form span {
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 12px;
+  font-size: 0.85rem;
   color: var(--text-light);
   text-decoration: none;
   cursor: pointer;
   line-height: 1;
   background: transparent; /* 不影响输入框背景 */
-  padding: 2px 0;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s;
 }
 .forgot__inside:hover {
   color: var(--primary-color);
+  background-color: rgba(0,0,0,0.02);
 }
 
 /* 角色标签：均匀分布，保持与输入框同宽 */
@@ -185,12 +209,21 @@ form span {
 /* 标签保持自适应宽度 */
 .role-tags :deep(.el-tag) {
   cursor: pointer;
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 32px;
+  line-height: 30px;
+  transition: all 0.2s;
 }
+.role-tags :deep(.el-tag:hover) {
+  transform: translateY(-1px);
+}
+
 /* 单个选项：让单选按钮和标签靠在一起，并垂直居中 */
 .tag-option {
   display: inline-flex;
   align-items: center;   /* 垂直居中对齐单选与标签 */
-  gap: 4px;              /* 减小单选按钮和标签之间的间距 */
+  gap: 6px;              /* 减小单选按钮和标签之间的间距 */
   user-select: none;
   cursor: pointer;
 }
@@ -198,6 +231,8 @@ form span {
 /* 使用 accent-color 设置单选按钮颜色，恢复浏览器默认外观 */
 .tag-option input[type="radio"] {
   cursor: pointer;
+  width: 16px;
+  height: 16px;
 }
 .tag-option.success input[type="radio"] { accent-color: var(--el-color-success); }
 .tag-option.primary input[type="radio"] { accent-color: var(--el-color-primary); }
@@ -217,7 +252,7 @@ form span {
 
 .overlay__wrapper {
   /* 将相对路径改为别名路径，适配 Vite 构建 */
-  background: url("@/assets/57-bg.png");
+  background: linear-gradient(to bottom, rgba(5, 150, 105, 0.8), rgba(4, 120, 87, 0.9)), url("@/assets/57-bg.png");
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -255,24 +290,34 @@ form span {
 .overlay__panel h1 {
   font-size: 2.5rem;
   margin-bottom: 1rem;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .overlay__panel p {
   max-width: 350px;
   margin: 0 auto;
-  line-height: 2rem;
+  line-height: 1.8rem;
+  font-size: 1rem;
+  opacity: 0.9;
 }
 
 .overlay__panel button {
   /* 右侧覆盖区按钮：需要白色描边以在深色背景上清晰可见 */
-  padding: 0.75rem 4rem;
+  padding: 0.8rem 4rem;
   margin-top: 2rem;
-  border: 1px solid var(--white);
+  border: 2px solid var(--white);
   outline: none;
   font-size: 1rem;
+  font-weight: 600;
   color: var(--white);
   border-radius: 2rem;
   background-color: transparent;
+  transition: all 0.2s ease;
+}
+.overlay__panel button:hover {
+  background-color: var(--white);
+  color: var(--primary-color);
 }
 
 /* 中间切换按钮 */

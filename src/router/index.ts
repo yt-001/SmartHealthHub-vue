@@ -30,7 +30,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'team', name: 'ClientTeam', component: () => import('@/views/ClientSide/Team.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '团队' } },
       { path: 'share', name: 'ClientShare', component: () => import('@/views/ClientSide/Share.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '分享' } },
       { path: 'video-hall', name: 'VideoHall', component: () => import('@/views/ClientSide/VideoHall/VideoHall.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '视频大厅' } },
-      { path: 'video/:id', name: 'VideoDetail', component: () => import('@/views/ClientSide/VideoDetail/VideoDetailPage.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '视频详情' } }
+      { path: 'video/:id', name: 'VideoDetail', component: () => import('@/views/ClientSide/VideoDetail/VideoDetailPage.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '视频详情' } },
+      { path: 'article/:id', name: 'ArticleDetail', component: () => import('@/views/ClientSide/ArticleDetail/ArticleDetailPage.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '文章详情' } }
     ]
   },
 

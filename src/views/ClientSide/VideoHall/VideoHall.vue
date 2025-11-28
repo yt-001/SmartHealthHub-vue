@@ -1,5 +1,5 @@
 <template>
-  <div class="video-hall">
+  <div class="video-hall" :style="containerStyle">
     <el-row :gutter="24">
       <!-- 左侧：轮播图 + 推荐栅格（填充轮播下方空白） -->
       <el-col :span="16" :xs="24">
@@ -33,18 +33,28 @@
         </div>
       </el-col>
     </el-row>
+
+    <!-- 上拉加载组件 -->
+    <PullUpLoading
+      :loading="isLoading"
+      :has-more="hasMore"
+      :pull-distance="pullDistance"
+    />
   </div>
-  
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PopularVideoCard from './components/PopularVideoCard.vue'
 import RecommendedVideoCard from './components/RecommendedVideoCard.vue'
+import PullUpLoading from '@/components/PullUpLoading.vue'
+import { usePullUpLoad } from '@/hooks/usePullUpLoad'
 
 /**
  * 视频大厅页面
  * @description 顶部为轮播图与右侧热门长条卡片；下方为推荐视频栅格
+ * 集成了上拉加载更多功能
  */
 const router = useRouter()
 
@@ -102,7 +112,7 @@ const popular = [
 /**
  * 推荐视频列表（栅格卡片）
  */
-const recommended = [
+const recommended = ref([
   { id: 201, title: '儿童疫苗接种全攻略', cover: 'https://picsum.photos/360/240?random=31', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '15:10', author: '儿保科李医生', views: '3千', publishedAt: '5小时前', description: '带你了解每种常见疫苗的接种时间与注意事项，帮助家长科学安排接种计划。' },
   { id: 202, title: '糖尿病早期症状自测', cover: 'https://picsum.photos/360/240?random=32', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '05:20', author: '内分泌科王医生', views: '2.3万', publishedAt: '1天前', description: '通过几个简单的自测方法，及时识别糖尿病早期信号，尽早干预更有效。' },
   { id: 203, title: '春季流感如何正确预防', cover: 'https://picsum.photos/360/240?random=33', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '09:10', author: '社区健康', views: '8千', publishedAt: '2天前', description: '讲解春季流感的传播特点和预防措施，告诉你何时该打疫苗、如何提升免疫力。' },
@@ -111,7 +121,53 @@ const recommended = [
   { id: 206, title: '健康饮水的科学方法', cover: 'https://picsum.photos/360/240?random=36', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '07:02', author: '营养师王老师', views: '9千', publishedAt: '5天前', description: '揭秘喝水误区，教你根据年龄与场景选择合适的饮水量与方式。' },
   { id: 207, title: '防晒科普：夏季如何选择防晒', cover: 'https://picsum.photos/360/240?random=37', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '11:22', author: '皮肤科张医生', views: '5千', publishedAt: '6天前', description: '全面解析防晒指数、成分与涂抹方法，让你高效防晒不“假防晒”。' },
   { id: 208, title: '家庭急救常识速学', cover: 'https://picsum.photos/360/240?random=38', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '13:08', author: '急诊中心', views: '2万', publishedAt: '1周前', description: '遇到常见家庭意外如何应对？教你掌握黄金急救法则与正确处理步骤。' }
-]
+])
+
+const hasMore = ref(true)
+
+/**
+ * 加载更多视频
+ * @description 模拟异步请求，追加视频数据
+ */
+const loadMore = async () => {
+  // 模拟最大加载次数，避免无限增长
+  if (recommended.value.length > 40) {
+    hasMore.value = false
+    return
+  }
+  
+  // 模拟数据
+  const moreVideos = Array.from({ length: 4 }).map((_, i) => {
+    const id = recommended.value.length + 201 + i
+    return {
+      id,
+      title: `加载更多视频示例 ${id}`,
+      cover: `https://picsum.photos/360/240?random=${id}`,
+      videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+      duration: '05:00',
+      author: '社区医生',
+      views: '1万+',
+      publishedAt: '刚刚',
+      description: '这是一个加载出来的示例视频，用于演示上拉加载更多功能的效果。'
+    }
+  })
+  
+  recommended.value.push(...moreVideos)
+}
+
+/**
+ * 使用上拉加载 Hook
+ */
+const { 
+  pullDistance, 
+  isLoading, 
+  containerStyle 
+} = usePullUpLoad({
+  onLoad: loadMore,
+  threshold: 60,
+  maxDistance: 120,
+  minLoadTime: 600
+})
 
 /**
  * 跳转详情页
@@ -124,10 +180,31 @@ const goDetail = (id: string | number) => {
 
 <style scoped>
 .video-hall { max-width: 1400px; margin: 0 auto; padding: 24px; }
-.carousel-card { border-radius: 12px; overflow: hidden; }
+
+/* 轮播图卡片 - 毛玻璃效果 */
+.carousel-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  overflow: hidden;
+}
+:deep(.el-card__body) { padding: 0; } /* 去除 el-card 默认内边距 */
+
 .banner { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.popular-list { display: flex; flex-direction: column; gap: 16px; }
+/* 热门列表容器 - 毛玻璃效果 */
+.popular-list {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .recommend-grid { margin-top: 12px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 @media (max-width: 1200px) { .recommend-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 900px) { .recommend-grid { grid-template-columns: repeat(2, 1fr); } }
