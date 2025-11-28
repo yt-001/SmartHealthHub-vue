@@ -28,7 +28,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'health', name: 'ClientHealth', component: () => import('@/views/ClientSide/Health.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '健康' } },
       { path: 'blog', name: 'ClientBlog', component: () => import('@/views/ClientSide/Blog.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '博客' } },
       { path: 'team', name: 'ClientTeam', component: () => import('@/views/ClientSide/Team.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '团队' } },
-      { path: 'share', name: 'ClientShare', component: () => import('@/views/ClientSide/Share.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '分享' } }
+      { path: 'share', name: 'ClientShare', component: () => import('@/views/ClientSide/Share.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '分享' } },
+      { path: 'video-hall', name: 'VideoHall', component: () => import('@/views/ClientSide/VideoHall/VideoHall.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '视频大厅' } },
+      { path: 'video/:id', name: 'VideoDetail', component: () => import('@/views/ClientSide/VideoDetail/VideoDetailPage.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '视频详情' } }
     ]
   },
 
@@ -54,7 +56,7 @@ const routes: RouteRecordRaw[] = [
 
       // 管理员端菜单占位子路由（相对路径，渲染到 RoleDashboard 的 router-view）
       { path: 'admin/dashboard', component: Error404, meta: { roles: ['admin'], title: '仪表盘' } },
-      { path: 'admin/hospital-overview', component: Error404, meta: { roles: ['admin'], title: '医院情况' } },
+      { path: 'admin/hospital-overview', component: () => import('@/views/RoleDashboard/AdminSide/HospitalOverview.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医院情况' } },
 
       { path: 'admin/doctor-manage', component: () => import('@/views/RoleDashboard/AdminSide/DoctorManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生管理' } },
       { path: 'admin/patient-manage', component: () => import('@/views/RoleDashboard/AdminSide/PatientManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '患者管理' } },

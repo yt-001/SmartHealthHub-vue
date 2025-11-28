@@ -1,17 +1,18 @@
 <template>
-  <!-- 博客模块占位内容 -->
   <div class="client-page">
-    <h2>博客</h2>
-    <p>这里是用户端 - 博客（占位）。</p>
+    <VideoHall />
   </div>
 </template>
 
 <script setup lang="ts">
-// 博客占位（中文注释）
+import VideoHall from '@/views/ClientSide/VideoHall/VideoHall.vue'
+
+/**
+ * 博客页面容器
+ * @description 在博客页面内嵌“视频大厅”以便预览整体效果
+ */
 </script>
 
 <style scoped>
-.client-page { padding: 32px; }
-.client-page h2 { margin: 0 0 12px; font-weight: 600; color: var(--primary-color); }
-.client-page p { color: var(--el-text-color-secondary); }
+.client-page { padding: 0; }
 </style>
