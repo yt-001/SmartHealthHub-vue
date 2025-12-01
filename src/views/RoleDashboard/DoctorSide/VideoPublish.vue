@@ -33,7 +33,7 @@
             default-first-option 
             style="width: 100%"
           >
-             <el-option v-for="item in categories" :key="item" :label="item" :value="item" />
+             <el-option v-for="item in categories" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
 
@@ -175,8 +175,8 @@ import { Picture, Promotion, Document, VideoCamera, UploadFilled, Back, Edit } f
 import request from '@/api/http'
 import type { UploadRequestOptions } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { createVideo, fetchVideoReviewDetail, updateVideo } from '@/api/modules/video'
-import type { HealthVideoCreateDTO } from '@/api/types/videoTypes'
+import { createVideo, fetchVideoReviewDetail, updateVideo, fetchVideoCategoriesSimpleList, fetchVideoRelatedCategories } from '@/api/modules/video'
+import type { HealthVideoCreateDTO, CategorySimpleVO } from '@/api/types/videoTypes'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 
 const router = useRouter()
@@ -185,7 +185,7 @@ const userStore = useUserStore()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 const videoFileName = ref<string>('')
-const categoryTags = ref<string[]>([])
+const categoryTags = ref<(number | string)[]>([])
 
 // 页面模式：create=发布, edit=编辑, view=查看
 const mode = ref('create')
@@ -201,9 +201,10 @@ const pageTitle = computed(() => {
 const coverFile = ref<File | null>(null)
 const videoFile = ref<File | null>(null)
 const isSubmitting = ref(false)
+const initialSnapshot = ref('')
 
 // 模拟数据
-const categories = ['科普讲座', '急救演示', '手术记录', '健康访谈']
+const categories = ref<CategorySimpleVO[]>([])
 
 const form = reactive<HealthVideoCreateDTO>({
   title: '',
@@ -233,23 +234,88 @@ const rules = reactive<FormRules>({
   ]
 })
 
-onMounted(() => {
+onMounted(async () => {
+  await loadCategories()
+
   const { id, mode: m } = route.query
   if (id) {
     videoId.value = id as string
     mode.value = (m as string) || 'edit'
     loadData(id as string)
   }
+  if (!id) {
+    initialSnapshot.value = computeSnapshot()
+  }
 })
+
+const loadCategories = async () => {
+  try {
+    const res = await fetchVideoCategoriesSimpleList()
+    if (res.code === 200) {
+      categories.value = res.data
+    }
+  } catch (error) {
+    console.error('获取分类失败', error)
+  }
+}
 
 const loadData = async (id: string) => {
   try {
+    // 1. 获取视频详情
     const res = await fetchVideoReviewDetail(id)
     if (res.data) {
-      Object.assign(form, res.data)
-      if (form.category) {
-        categoryTags.value = form.category.split(',')
+      const data = res.data
+      // 注意：VO 中已移除 category 字段，手动赋值其他字段
+      Object.assign(form, {
+        title: data.title,
+        description: data.description,
+        coverImageUrl: data.coverImageUrl,
+        videoUrl: data.videoUrl,
+        duration: data.duration,
+        authorId: Number(data.authorId),
+        isTop: data.isTop,
+        status: data.status,
+        category: data.category // 暂时恢复
+      })
+
+      // 2. 获取关联分类（优先调用独立接口）
+      let hasRelated = false
+      try {
+        const catRes = await fetchVideoRelatedCategories(id)
+        if (catRes.code === 200 && Array.isArray(catRes.data) && catRes.data.length > 0) {
+           // 兼容返回 ID 数组或对象数组
+           const list = catRes.data as any[]
+           if (typeof list[0] === 'object' && list[0] !== null && 'id' in list[0]) {
+              categoryTags.value = list.map(item => item.id)
+           } else {
+              categoryTags.value = list
+           }
+           hasRelated = true
+        }
+      } catch (e) {
+        console.warn('获取关联分类失败，尝试从详情字段解析', e)
       }
+
+      // 3. 如果独立接口未获取到，尝试解析详情中的 category 字段（兼容旧数据）
+      if (!hasRelated && data.category) {
+        // 尝试解析 JSON 或逗号分隔
+        try {
+          if (data.category.startsWith('[')) {
+            const parsed = JSON.parse(data.category)
+            categoryTags.value = Array.isArray(parsed) ? parsed : []
+          } else {
+             categoryTags.value = data.category.split(',').map(id => {
+               const num = Number(id)
+               return isNaN(num) ? id : num
+             })
+          }
+        } catch (e) {
+          categoryTags.value = []
+        }
+      }
+      
+      initialSnapshot.value = computeSnapshot()
+      
     }
   } catch (error) {
     console.error(error)
@@ -288,9 +354,11 @@ const submitForm = async (status: number) => {
             form.authorId = userStore.userInfo?.id || 0
         }
 
-        // 转换分类标签为字符串
+        // 转换分类标签为字符串 (JSON 格式存储 ID 列表)
         if (categoryTags.value && categoryTags.value.length > 0) {
-           form.category = categoryTags.value.join(',')
+           form.category = JSON.stringify(categoryTags.value)
+        } else {
+           form.category = ''
         }
 
         form.status = status
@@ -340,17 +408,38 @@ const uploadVideo = (opt: UploadRequestOptions) => {
   opt.onSuccess && opt.onSuccess({} as any)
 }
 
-// 路由守卫：未保存离开时提示
+/**
+ * 生成表单快照（用于判断是否修改过）
+ */
+function computeSnapshot(): string {
+  const payload = {
+    title: form.title || '',
+    description: form.description || '',
+    coverImageUrl: form.coverImageUrl || '',
+    videoUrl: form.videoUrl || '',
+    duration: form.duration ?? 0,
+    categoryTags: [...categoryTags.value].map(String).sort(),
+    isTop: form.isTop ?? 0,
+    status: form.status ?? 0
+  }
+  return JSON.stringify(payload)
+}
+
+/**
+ * 路由守卫：仅在有未保存修改时弹窗
+ */
 onBeforeRouteLeave((to, from, next) => {
   if (isSubmitting.value) {
     next()
     return
   }
-
-  // 检查是否有内容填写
-  const hasContent = form.title || form.description || form.videoUrl || form.coverImageUrl || (categoryTags.value.length > 0)
-  
-  if (hasContent) {
+  if (isView.value) {
+    next()
+    return
+  }
+  const current = computeSnapshot()
+  const dirty = current !== initialSnapshot.value
+  if (dirty) {
     ElMessageBox.confirm(
       '当前页面有未保存的内容，是否确认离开？离开后内容将丢失。',
       '温馨提示',
@@ -362,11 +451,9 @@ onBeforeRouteLeave((to, from, next) => {
       }
     )
       .then(() => {
-        // 确认离开
         next()
       })
       .catch(() => {
-        // 取消离开（停留在当前页）
         next(false)
       })
   } else {

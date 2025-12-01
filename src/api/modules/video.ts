@@ -5,7 +5,18 @@
  */
 import request from '../http'
 import type { ApiResponse } from '../types'
-import type { VideoReviewPageQuery, VideoReviewPageResult, HealthVideoVO, HealthVideoCreateDTO } from '../types/videoTypes'
+import type { 
+  VideoReviewPageQuery, 
+  VideoReviewPageResult, 
+  HealthVideoVO, 
+  HealthVideoCreateDTO,
+  VideoCategoriesQuery,
+  VideoCategoriesVO,
+  CategorySimpleVO,
+  VideoCategoriesCreateDTO,
+  VideoCategoriesUpdateDTO
+} from '../types/videoTypes'
+import type { PageResult, BasePageQuery } from '../types/index'
 
 /**
  * 后端路径占位：请按后端真实接口修改为正确路径
@@ -13,6 +24,73 @@ import type { VideoReviewPageQuery, VideoReviewPageResult, HealthVideoVO, Health
  */
 const VIDEO_REVIEW_LIST_PATH = '/health-videos/page'
 const VIDEO_REVIEW_DETAIL_BASE = '/health-videos'
+
+/** ---------------- 视频分类管理接口 ---------------- */
+
+/** 分页查询视频分类 */
+export function fetchVideoCategoriesPage(params: BasePageQuery<VideoCategoriesQuery>) {
+  return request.post('/video-categories/page', params) as Promise<ApiResponse<PageResult<VideoCategoriesVO>>>
+}
+
+/** 获取所有启用的视频分类（简化信息） */
+export function fetchVideoCategoriesSimpleList() {
+  return request.get('/video-categories/simple-list') as Promise<ApiResponse<CategorySimpleVO[]>>
+}
+
+/** 获取所有启用的视频分类 */
+export function fetchVideoCategoriesEnabledList() {
+  return request.get('/video-categories/enabled-list') as Promise<ApiResponse<VideoCategoriesVO[]>>
+}
+
+/** 根据ID获取视频分类详情 */
+export function fetchVideoCategoryDetail(id: number | string) {
+  return request.get(`/video-categories/${id}`) as Promise<ApiResponse<VideoCategoriesVO>>
+}
+
+/** 创建视频分类 */
+export function createVideoCategory(data: VideoCategoriesCreateDTO) {
+  return request.post('/video-categories/create', data) as Promise<ApiResponse<string>>
+}
+
+/** 更新视频分类 */
+export function updateVideoCategory(data: VideoCategoriesUpdateDTO) {
+  return request.put('/video-categories/update', data) as Promise<ApiResponse<string>>
+}
+
+/** 删除视频分类 */
+export function deleteVideoCategory(id: number | string) {
+  return request.delete(`/video-categories/delete/${id}`) as Promise<ApiResponse<string>>
+}
+
+/** 获取视频关联的分类ID列表 */
+export function fetchVideoRelatedCategories(videoId: number | string) {
+  return request.get(`/health-videos/video-category-relations/video/${videoId}`) as Promise<ApiResponse<CategorySimpleVO[]>>
+}
+
+/**
+ * 根据作者ID分页查询健康视频
+ * - 后端接口：POST /health-videos/author/{authorId}/page
+ * - 入参：{ pageNum, pageSize, sortField?, sortDirection? }
+ * - 出参：{ total, list, pageNum, pageSize, pages }
+ */
+export function fetchPublicVideosByAuthorId(authorId: number | string, params: {
+  pageNum: number
+  pageSize: number
+  sortField?: string
+  sortDirection?: 'ASC' | 'DESC'
+}) {
+  return request.post(`/health-videos/author/${authorId}/page`, params) as Promise<
+    ApiResponse<{
+      total: number
+      list: HealthVideoVO[]
+      pageNum: number
+      pageSize: number
+      pages: number
+    }>
+  >
+}
+
+/** ---------------- 视频管理接口 ---------------- */
 
 /** 获取审核视频列表（分页） */
 export function fetchVideoReviewList(params: VideoReviewPageQuery) {

@@ -42,7 +42,7 @@
                 default-first-option 
                 style="width: 100%"
               >
-                 <el-option v-for="item in categories" :key="item" :label="item" :value="item" />
+                 <el-option v-for="item in categories" :key="item.id" :label="item.name" :value="item.id" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -148,8 +148,8 @@ import { Picture, Promotion, Document, Back, Edit } from '@element-plus/icons-vu
 import request from '@/api/http'
 import type { UploadRequestOptions } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { createArticle, fetchArticleReviewDetail, updateArticle } from '@/api/modules/article'
-import type { HealthArticleCreateDTO } from '@/api/types/articleTypes'
+import { createArticle, fetchArticleReviewDetail, updateArticle, fetchArticleCategoriesSimpleList, fetchArticleRelatedCategories } from '@/api/modules/article'
+import type { HealthArticleCreateDTO, CategorySimpleVO } from '@/api/types/articleTypes'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 
 const router = useRouter()
@@ -157,7 +157,7 @@ const route = useRoute()
 const userStore = useUserStore()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
-const categoryTags = ref<string[]>([])
+const categoryTags = ref<(number | string)[]>([])
 
 // 页面模式：create=发布, edit=编辑, view=查看
 const mode = ref('create')
@@ -172,6 +172,7 @@ const pageTitle = computed(() => {
 // 本地文件引用，用于最后提交时上传
 const coverFile = ref<File | null>(null)
 const isSubmitting = ref(false)
+const initialSnapshot = ref('')
 
 // 模拟数据
 const departments = [
@@ -185,7 +186,7 @@ const departments = [
   { id: 8, name: '皮肤科' },
 ]
 
-const categories = ['健康科普', '疾病预防', '康复指导', '用药指南', '医院动态', '名医讲堂']
+const categories = ref<CategorySimpleVO[]>([])
 
 const form = reactive<HealthArticleCreateDTO>({
   title: '',
@@ -196,7 +197,8 @@ const form = reactive<HealthArticleCreateDTO>({
   deptId: undefined,
   category: '',
   isTop: 0,
-  status: 0
+  status: 0,
+  authorName: ''
 })
 
 const rules = reactive<FormRules>({
@@ -218,23 +220,88 @@ const rules = reactive<FormRules>({
   ]
 })
 
-onMounted(() => {
+onMounted(async () => {
+  await loadCategories()
+
   const { id, mode: m } = route.query
   if (id) {
     articleId.value = id as string
     mode.value = (m as string) || 'edit'
     loadData(id as string)
   }
+  if (!id) {
+    initialSnapshot.value = computeSnapshot()
+  }
 })
+
+const loadCategories = async () => {
+  try {
+    const res = await fetchArticleCategoriesSimpleList()
+    if (res.code === 200) {
+      categories.value = res.data
+    }
+  } catch (error) {
+    console.error('获取分类失败', error)
+  }
+}
 
 const loadData = async (id: string) => {
   try {
+    // 1. 获取文章详情
     const res = await fetchArticleReviewDetail(id)
     if (res.data) {
-      Object.assign(form, res.data)
-      if (form.category) {
-        categoryTags.value = form.category.split(',')
+      const data = res.data
+      Object.assign(form, {
+        title: data.title,
+        summary: data.summary,
+        content: data.content,
+        coverImageUrl: data.coverImageUrl,
+        authorId: Number(data.authorId),
+        deptId: Number(data.deptId),
+        category: data.category, // 暂时恢复
+        isTop: data.isTop,
+        status: data.status
+      })
+      
+      // 2. 获取关联分类（优先调用独立接口）
+      let hasRelated = false
+      try {
+        const catRes = await fetchArticleRelatedCategories(id)
+        if (catRes.code === 200 && Array.isArray(catRes.data) && catRes.data.length > 0) {
+           // 兼容返回 ID 数组或对象数组
+           const list = catRes.data as any[]
+           if (typeof list[0] === 'object' && list[0] !== null && 'id' in list[0]) {
+              categoryTags.value = list.map(item => item.id)
+           } else {
+              categoryTags.value = list
+           }
+           hasRelated = true
+        }
+      } catch (e) {
+        console.warn('获取关联分类失败，尝试从详情字段解析', e)
       }
+      
+      // 3. 如果独立接口未获取到，尝试解析详情中的 category 字段（兼容旧数据）
+      if (!hasRelated && data.category) {
+        try {
+          // 尝试解析JSON数组
+          const parsed = JSON.parse(data.category)
+          if (Array.isArray(parsed)) {
+            categoryTags.value = parsed
+          } else {
+            // 如果不是数组，可能是单个ID或字符串，尝试转换
+             if (!isNaN(Number(data.category))) {
+                 categoryTags.value = [Number(data.category)]
+             }
+          }
+        } catch (e) {
+          // 解析失败，可能是逗号分隔或普通字符串
+          console.warn('Category parse failed', e)
+        }
+      }
+      
+      initialSnapshot.value = computeSnapshot()
+      
     }
   } catch (error) {
     console.error(error)
@@ -268,9 +335,11 @@ const submitForm = async (status: number) => {
             form.authorId = userStore.userInfo?.id || 0
         }
         
-        // 转换分类标签为字符串
+        // 转换分类标签为字符串 (JSON 格式存储 ID 列表)
         if (categoryTags.value && categoryTags.value.length > 0) {
-           form.category = categoryTags.value.join(',')
+           form.category = JSON.stringify(categoryTags.value)
+        } else {
+           form.category = ''
         }
 
         form.status = status
@@ -308,16 +377,38 @@ const uploadCover = (opt: UploadRequestOptions) => {
   opt.onSuccess && opt.onSuccess({} as any)
 }
 
-// 路由守卫：未保存离开时提示
+/**
+ * 生成表单快照（用于判断是否修改过）
+ */
+function computeSnapshot(): string {
+  const payload = {
+    title: form.title || '',
+    summary: form.summary || '',
+    content: form.content || '',
+    coverImageUrl: form.coverImageUrl || '',
+    deptId: form.deptId ?? '',
+    categoryTags: [...categoryTags.value].map(String).sort(),
+    isTop: form.isTop ?? 0,
+    status: form.status ?? 0
+  }
+  return JSON.stringify(payload)
+}
+
+/**
+ * 路由守卫：仅在有未保存修改时弹窗
+ */
 onBeforeRouteLeave((to, from, next) => {
   if (isSubmitting.value) {
     next()
     return
   }
-
-  const hasContent = form.title || form.summary || form.content || form.coverImageUrl || (categoryTags.value.length > 0)
-  
-  if (hasContent) {
+  if (isView.value) {
+    next()
+    return
+  }
+  const current = computeSnapshot()
+  const dirty = current !== initialSnapshot.value
+  if (dirty) {
     ElMessageBox.confirm(
       '当前页面有未保存的内容，是否确认离开？离开后内容将丢失。',
       '温馨提示',

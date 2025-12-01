@@ -1,7 +1,16 @@
 <template>
   <!-- 医生端-我的视频 -->
   <div style="padding:16px;" v-loading="loading">
-    <div v-if="list.length > 0" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 320px)); gap: 16px; justify-content: start;">
+    <!-- 筛选区域 -->
+    <div style="margin-bottom: 16px; display: flex; gap: 16px;">
+      <el-select v-model="searchCategory" placeholder="选择分类" clearable style="width: 200px;" @change="loadList">
+        <el-option v-for="item in categories" :key="item.id" :label="item.name" :value="item.id" />
+      </el-select>
+      <el-input v-model="searchTitle" placeholder="搜索标题" style="width: 200px;" clearable @clear="loadList" @keyup.enter="loadList" />
+      <el-button type="primary" @click="loadList">搜索</el-button>
+    </div>
+
+    <div v-if="list.length > 0" style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 16px; justify-content: start;">
       <MediaCard
         v-for="it in list"
         :key="it.id"
@@ -37,31 +46,70 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import MediaCard from '@/components/MediaCard.vue'
-import { fetchVideoReviewList } from '@/api/modules/video'
+import { fetchVideoReviewList, fetchVideoCategoriesSimpleList, fetchPublicVideosByAuthorId } from '@/api/modules/video'
+import type { CategorySimpleVO } from '@/api/types/videoTypes'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
 const list = ref<any[]>([])
 const total = ref(0)
 const pageNum = ref(1)
 const pageSize = ref(12)
 
+// 搜索条件
+const searchCategory = ref<number | string>('')
+const searchTitle = ref('')
+const categories = ref<CategorySimpleVO[]>([])
+
 const showEdit = ref(true)
+
+
+// 加载分类
+const loadCategories = async () => {
+  try {
+    const res = await fetchVideoCategoriesSimpleList()
+    if (res.code === 200) {
+      categories.value = res.data
+    }
+  } catch (error) {
+    console.error('获取分类失败', error)
+  }
+}
 
 const loadList = async () => {
   loading.value = true
   try {
-    const res = await fetchVideoReviewList({
-      pageNum: pageNum.value,
-      pageSize: pageSize.value,
-      query: {}
-    })
+    const uid = Number(userStore.userInfo?.id)
+    if (!Number.isFinite(uid) || uid <= 0) {
+      ElMessage.error('未获取到用户信息，请重新登录')
+      loading.value = false
+      return
+    }
+    const hasFilter = !!(searchTitle.value || searchCategory.value)
+    const res = hasFilter
+      ? await fetchVideoReviewList({
+          pageNum: pageNum.value,
+          pageSize: pageSize.value,
+          query: {
+            title: searchTitle.value || undefined,
+            category: searchCategory.value ? String(searchCategory.value) : undefined,
+            authorId: uid
+          }
+        })
+      : await fetchPublicVideosByAuthorId(uid, {
+          pageNum: pageNum.value,
+          pageSize: pageSize.value,
+          sortField: '',
+          sortDirection: 'ASC'
+        })
     if (res.data) {
       list.value = res.data.list
       total.value = res.data.total
     }
   } catch (error) {
-    console.error(error)
+    console.error('获取列表失败', error)
     ElMessage.error('获取视频列表失败')
   } finally {
     loading.value = false
@@ -69,6 +117,7 @@ const loadList = async () => {
 }
 
 onMounted(() => {
+  loadCategories()
   loadList()
 })
 

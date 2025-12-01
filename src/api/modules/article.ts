@@ -5,11 +5,89 @@
  */
 import request from '../http'
 import type { ApiResponse } from '../types'
-import type { ArticleReviewPageQuery, ArticleReviewPageResult, HealthArticleVO, HealthArticleCreateDTO } from '../types/articleTypes'
+import type { 
+  ArticleReviewPageQuery, 
+  ArticleReviewPageResult, 
+  HealthArticleVO, 
+  HealthArticleCreateDTO,
+  ArticleCategoriesQuery,
+  ArticleCategoriesVO,
+  CategorySimpleVO,
+  ArticleCategoriesCreateDTO,
+  ArticleCategoriesUpdateDTO
+} from '../types/articleTypes'
+import type { PageResult, BasePageQuery } from '../types/index'
 
 /** 后端路径占位：请按后端真实接口修改为正确路径 */
 const ARTICLE_REVIEW_LIST_PATH = '/health-articles/page'
 const ARTICLE_REVIEW_DETAIL_BASE = '/health-articles'
+
+/** ---------------- 文章分类管理接口 ---------------- */
+
+/** 分页查询文章分类 */
+export function fetchArticleCategoriesPage(params: BasePageQuery<ArticleCategoriesQuery>) {
+  return request.post('/article-categories/page', params) as Promise<ApiResponse<PageResult<ArticleCategoriesVO>>>
+}
+
+/** 获取所有启用的文章分类（简化信息） */
+export function fetchArticleCategoriesSimpleList() {
+  return request.get('/article-categories/simple-list') as Promise<ApiResponse<CategorySimpleVO[]>>
+}
+
+/** 获取所有启用的文章分类 */
+export function fetchArticleCategoriesEnabledList() {
+  return request.get('/article-categories/enabled-list') as Promise<ApiResponse<ArticleCategoriesVO[]>>
+}
+
+/** 根据ID获取文章分类详情 */
+export function fetchArticleCategoryDetail(id: number | string) {
+  return request.get(`/article-categories/${id}`) as Promise<ApiResponse<ArticleCategoriesVO>>
+}
+
+/** 创建文章分类 */
+export function createArticleCategory(data: ArticleCategoriesCreateDTO) {
+  return request.post('/article-categories/create', data) as Promise<ApiResponse<string>>
+}
+
+/** 更新文章分类 */
+export function updateArticleCategory(data: ArticleCategoriesUpdateDTO) {
+  return request.put('/article-categories/update', data) as Promise<ApiResponse<string>>
+}
+
+/** 删除文章分类 */
+export function deleteArticleCategory(id: number | string) {
+  return request.delete(`/article-categories/delete/${id}`) as Promise<ApiResponse<string>>
+}
+
+/** 获取文章关联的分类ID列表 */
+export function fetchArticleRelatedCategories(articleId: number | string) {
+  return request.get(`/health-articles/article-category-relations/article/${articleId}`) as Promise<ApiResponse<CategorySimpleVO[]>>
+}
+
+/**
+ * 根据作者ID分页查询健康文章
+ * - 后端接口：POST /health-articles/author/{authorId}/page
+ * - 入参：{ pageNum, pageSize, sortField?, sortDirection? }
+ * - 出参：{ total, list, pageNum, pageSize, pages }
+ */
+export function fetchPublicArticlesByAuthorId(authorId: number | string, params: {
+  pageNum: number
+  pageSize: number
+  sortField?: string
+  sortDirection?: 'ASC' | 'DESC'
+}) {
+  return request.post(`/health-articles/author/${authorId}/page`, params) as Promise<
+    ApiResponse<{
+      total: number
+      list: HealthArticleVO[]
+      pageNum: number
+      pageSize: number
+      pages: number
+    }>
+  >
+}
+
+/** ---------------- 文章管理接口 ---------------- */
 
 /** 获取审核文章列表（分页） */
 export function fetchArticleReviewList(params: ArticleReviewPageQuery) {

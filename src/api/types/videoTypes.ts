@@ -20,7 +20,8 @@ export interface HealthVideoVO {
   /** 作者姓名 */
   authorName: string
   /** 分类/标签 */
-  category: string
+  // category: string // 已移除
+  category: string // 暂时恢复
   /** 观看次数 */
   viewCount: number
   /** 点赞次数 */
@@ -40,12 +41,13 @@ export interface HealthVideoVO {
 /** 视频列表查询条件（后端希望接收的 query 字段） */
 export interface VideoReviewQuery {
   title?: string
+  authorId?: number | string
   authorName?: string
-  deptId?: string | null
-  category?: string
-  isTop?: 0 | 1 | null
-  /** 固定状态条件：可选传单个 status 或传递 statusList */
-  status?: 0 | 1 | 2 | 3 | 4 | null
+  deptId?: number | string
+  // category?: string // 已移除
+  category?: string // 暂时恢复：数据库未变更，仍需使用此字段筛选
+  isTop?: number
+  status?: number
   /** 可选：状态列表，允许同时传 3/4 等多个状态 */
   statusList?: (0 | 1 | 2 | 3 | 4)[]
   createdStart?: string
@@ -89,11 +91,53 @@ export interface HealthVideoCreateDTO {
   /** 视频时长（秒） */
   duration?: number
   /** 作者ID */
-  authorId: number
+  authorId: number | string
   /** 视频分类/标签（JSON格式存储分类ID列表） */
   category?: string
   /** 是否置顶：0 否 1 是 */
   isTop?: number
   /** 状态：0 草稿 1 已发布 2 已下架 3 审核中 4 未通过审核 */
   status?: number
+}
+
+/** ---------------- 视频分类相关类型 ---------------- */
+
+/** 视频分类查询对象 */
+export interface VideoCategoriesQuery {
+  /** 分类名称（模糊查询） */
+  name?: string
+  /** 是否启用：0 否 1 是 */
+  isEnabled?: number
+}
+
+/** 视频分类列表VO */
+export interface VideoCategoriesVO {
+  id: number
+  name: string
+  description?: string
+  sortOrder: number
+  isEnabled: number
+}
+
+/** 简化版分类VO */
+export interface CategorySimpleVO {
+  id: number
+  name: string
+}
+
+/** 视频分类创建DTO */
+export interface VideoCategoriesCreateDTO {
+  name: string
+  description?: string
+  sortOrder?: number
+  isEnabled?: number
+}
+
+/** 视频分类更新DTO */
+export interface VideoCategoriesUpdateDTO {
+  id: number
+  name?: string
+  description?: string
+  sortOrder?: number
+  isEnabled?: number
 }

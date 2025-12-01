@@ -66,8 +66,8 @@ const doctorMenu: MenuItem[] = [
     children: [
       { title: "发布文章", path: "/portal/doctor/article-publish", icon: "DocumentAdd" },
       { title: "发布视频", path: "/portal/doctor/video-publish", icon: "VideoCamera" },
-      { title: "文章列表", path: "/portal/doctor/my-articles", icon: "Document" },
-      { title: "我的视频发布", path: "/portal/doctor/my-videos", icon: "VideoCamera" },
+      { title: "我的文章", path: "/portal/doctor/my-articles", icon: "Document" },
+      { title: "我的视频", path: "/portal/doctor/my-videos", icon: "VideoCamera" },
     ],
   },
   {

@@ -40,9 +40,11 @@ export interface HealthArticleVO {
 /** 文章列表查询条件（后端期望接收的 query 字段） */
 export interface ArticleReviewQuery {
   title?: string
+  authorId?: number
   authorName?: string
   deptId?: string | null
-  category?: string
+  // category?: string // 已移除，后续通过关联表查询
+  category?: string // 暂时恢复
   isTop?: 0 | 1 | null
   /** 固定状态条件：可选传单个 status 或传递 statusList */
   status?: 0 | 1 | 2 | 3 | 4 | null
@@ -89,13 +91,57 @@ export interface HealthArticleCreateDTO {
   /** 文章封面图片URL */
   coverImageUrl?: string
   /** 作者ID */
-  authorId: number
+  authorId: number | string
+  /** 作者姓名 */
+  authorName: string
   /** 科室ID */
-  deptId?: number
-  /** 文章分类/标签（JSON格式存储分类ID列表） */
-  category?: string
+  deptId?: number | string
+  // category?: string // 已移除
+  category?: string // 暂时恢复
   /** 是否置顶：0 否 1 是 */
-  isTop?: number
+  isTop: number
   /** 状态：0 草稿 1 已发布 2 已下架 */
-  status?: number
+  status: number
+}
+
+/** ---------------- 文章分类相关类型 ---------------- */
+
+/** 文章分类查询对象 */
+export interface ArticleCategoriesQuery {
+  /** 分类名称（模糊查询） */
+  name?: string
+  /** 是否启用：0 否 1 是 */
+  isEnabled?: number
+}
+
+/** 文章分类列表VO */
+export interface ArticleCategoriesVO {
+  id: number
+  name: string
+  description?: string
+  sortOrder: number
+  isEnabled: number
+}
+
+/** 简化版分类VO */
+export interface CategorySimpleVO {
+  id: number
+  name: string
+}
+
+/** 文章分类创建DTO */
+export interface ArticleCategoriesCreateDTO {
+  name: string
+  description?: string
+  sortOrder?: number
+  isEnabled?: number
+}
+
+/** 文章分类更新DTO */
+export interface ArticleCategoriesUpdateDTO {
+  id: number
+  name?: string
+  description?: string
+  sortOrder?: number
+  isEnabled?: number
 }

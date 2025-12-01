@@ -191,7 +191,7 @@ const handleCoverClick = () => {
   border: none;
   transition: all .15s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.shh-accept:hover { background-color: var(--button-hover-bg); }
+.shh-accept:hover { background-color: var(--el-color-primary-light-5); }
 .shh-accept:focus { outline: 2px solid transparent; outline-offset: 2px; }
 
 /* 大图弹窗容器 */
