@@ -102,8 +102,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'doctor/schedule', component: Error404, meta: { roles: ['doctor'], title: '医生排班查看' } },
       { path: 'doctor/statistics', component: Error404, meta: { roles: ['doctor'], title: '患者数据统计可视化' } },
       // 医生端-我的发布：我的文章、视频发布（占位页面）
-      { path: 'doctor/my-articles', component: () => import('@/views/RoleDashboard/DoctorSide/MyArticles.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '我的文章' } },
-      { path: 'doctor/video-publish', component: () => import('@/views/RoleDashboard/DoctorSide/VideoPublish.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '视频发布' } },
+      { path: 'doctor/my-articles', component: () => import('@/views/RoleDashboard/DoctorSide/MyArticles.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '文章列表' } },
+      { path: 'doctor/article-publish', component: () => import('@/views/RoleDashboard/DoctorSide/ArticlePublish.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '发布文章' } },
+      { path: 'doctor/video-publish', component: () => import('@/views/RoleDashboard/DoctorSide/VideoPublish.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '发布视频' } },
+      { path: 'doctor/my-videos', component: () => import('@/views/RoleDashboard/DoctorSide/MyVideos.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '我的视频发布' } },
 
       { path: 'doctor/profile', component: Error404, meta: { roles: ['doctor'], title: '医生个人信息' } },
       { path: 'doctor/account', component: Error404, meta: { roles: ['doctor'], title: '账户设置' } },

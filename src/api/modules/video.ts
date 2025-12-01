@@ -5,7 +5,7 @@
  */
 import request from '../http'
 import type { ApiResponse } from '../types'
-import type { VideoReviewPageQuery, VideoReviewPageResult } from '../types/videoTypes'
+import type { VideoReviewPageQuery, VideoReviewPageResult, HealthVideoVO, HealthVideoCreateDTO } from '../types/videoTypes'
 
 /**
  * 后端路径占位：请按后端真实接口修改为正确路径
@@ -22,7 +22,7 @@ export function fetchVideoReviewList(params: VideoReviewPageQuery) {
 /** 获取视频审核详情（GET /{id}/view） */
 export function fetchVideoReviewDetail(id: string | number) {
   const path = `${VIDEO_REVIEW_DETAIL_BASE}/${id}/view`
-  return request.get(path) as Promise<ApiResponse<import('../types/videoTypes').HealthVideoVO>>
+  return request.get(path) as Promise<ApiResponse<HealthVideoVO>>
 }
 
 /** 审核健康视频（PUT /{id}/review?status=...） */
@@ -30,4 +30,20 @@ export function approveVideoReview(id: string | number, status: 0 | 1 | 2 | 3 | 
   const path = `${VIDEO_REVIEW_DETAIL_BASE}/${id}/review`
   // 中文注释：后端使用 @RequestParam Byte status，因此通过 params 传参
   return request.put(path, {}, { params: { status } }) as Promise<ApiResponse<string>>
+}
+
+/**
+ * 创建健康视频
+ * - 后端接口：POST /health-videos/create
+ */
+export function createVideo(data: HealthVideoCreateDTO) {
+  return request.post('/health-videos/create', data) as Promise<ApiResponse<string>>
+}
+
+/**
+ * 更新健康视频
+ * - 后端接口：PUT /health-videos/update
+ */
+export function updateVideo(data: any) {
+  return request.put('/health-videos/update', data) as Promise<ApiResponse<string>>
 }

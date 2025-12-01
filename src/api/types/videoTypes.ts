@@ -75,3 +75,25 @@ export interface HealthVideoReviewVO {
 }
 
 export type VideoReviewPageResult = PageResult<HealthVideoReviewVO>
+
+/** 健康视频创建DTO */
+export interface HealthVideoCreateDTO {
+  /** 视频标题 */
+  title: string
+  /** 视频描述 */
+  description?: string
+  /** 视频封面图片URL */
+  coverImageUrl?: string
+  /** 视频文件URL */
+  videoUrl: string
+  /** 视频时长（秒） */
+  duration?: number
+  /** 作者ID */
+  authorId: number
+  /** 视频分类/标签（JSON格式存储分类ID列表） */
+  category?: string
+  /** 是否置顶：0 否 1 是 */
+  isTop?: number
+  /** 状态：0 草稿 1 已发布 2 已下架 3 审核中 4 未通过审核 */
+  status?: number
+}

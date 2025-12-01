@@ -5,7 +5,7 @@
  */
 import request from '../http'
 import type { ApiResponse } from '../types'
-import type { ArticleReviewPageQuery, ArticleReviewPageResult, HealthArticleVO } from '../types/articleTypes'
+import type { ArticleReviewPageQuery, ArticleReviewPageResult, HealthArticleVO, HealthArticleCreateDTO } from '../types/articleTypes'
 
 /** 后端路径占位：请按后端真实接口修改为正确路径 */
 const ARTICLE_REVIEW_LIST_PATH = '/health-articles/page'
@@ -51,4 +51,20 @@ export function fetchPublicArticlesPage(params: {
       pages: number
     }>
   >
+}
+
+/**
+ * 创建健康文章
+ * - 后端接口：POST /health-articles/create
+ */
+export function createArticle(data: HealthArticleCreateDTO) {
+  return request.post('/health-articles/create', data) as Promise<ApiResponse<string>>
+}
+
+/**
+ * 更新健康文章
+ * - 后端接口：PUT /health-articles/update
+ */
+export function updateArticle(data: any) {
+  return request.put('/health-articles/update', data) as Promise<ApiResponse<string>>
 }

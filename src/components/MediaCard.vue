@@ -1,33 +1,35 @@
 <template>
-  <!-- 可复用的媒体卡片组件：标题下方有封面预览，底部为左右操作区 -->
+  <!-- 可复用的媒体卡片组件：封面在顶部，标题和描述在下方 -->
   <div class="shh-card">
-    <span class="shh-title">{{ title }}</span>
-
     <!-- 封面展示区域：若无封面则显示占位 -->
     <div class="shh-cover" :class="{ clickable: enableCoverPreview && coverUrl }" @click="handleCoverClick">
       <img v-if="coverUrl" :src="coverUrl" :alt="title" />
       <div v-else class="shh-cover-placeholder">暂无封面</div>
     </div>
 
-    <p v-if="description" class="shh-desc">
-      <slot name="description">
-        {{ description }}
-      </slot>
-    </p>
+    <div class="shh-content">
+      <span class="shh-title" :title="title">{{ title }}</span>
 
-    <!-- 操作区：左次要/右主要；可通过插槽自定义 -->
-    <div class="shh-actions">
-      <slot name="actions-left">
-        <!-- 中文注释：由布尔变量控制左下角显示：true 显示“编辑”按钮；false 显示播放量/点赞量 -->
-        <button v-if="showEditLeft && secondaryText" class="shh-pref" @click="$emit('secondary')">{{ secondaryText }}</button>
-        <div v-else class="shh-metrics">
-          <span class="metric"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>{{ formatNumber(viewCount) }}</span>
-          <span class="metric"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>{{ authorName || '-' }}</span>
-        </div>
-      </slot>
-      <slot name="actions-right">
-        <button v-if="primaryText" class="shh-accept" @click="$emit('primary')">{{ primaryText }}</button>
-      </slot>
+      <p v-if="description" class="shh-desc">
+        <slot name="description">
+          {{ description }}
+        </slot>
+      </p>
+
+      <!-- 操作区：左次要/右主要；可通过插槽自定义 -->
+      <div class="shh-actions">
+        <slot name="actions-left">
+          <!-- 中文注释：由布尔变量控制左下角显示：true 显示“编辑”按钮；false 显示播放量/点赞量 -->
+          <button v-if="showEditLeft && secondaryText" class="shh-pref" @click="$emit('secondary')">{{ secondaryText }}</button>
+          <div v-else class="shh-metrics">
+            <span class="metric"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>{{ formatNumber(viewCount) }}</span>
+            <span class="metric"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>{{ authorName || '-' }}</span>
+          </div>
+        </slot>
+        <slot name="actions-right">
+          <button v-if="primaryText" class="shh-accept" @click="$emit('primary')">{{ primaryText }}</button>
+        </slot>
+      </div>
     </div>
 
     <!-- 大图预览弹窗（可选） -->
@@ -86,27 +88,42 @@ const handleCoverClick = () => {
 /* 外层卡片样式（基于提供的 cookie card 样式改造，统一前缀防冲突） */
 .shh-card {
   width: 100%; /* 让卡片充满栅格列宽 */
-  padding: 0.875rem;
+  padding: 0; /* 移除内边距，让封面图撑满顶部 */
   background-color: var(--el-bg-color-overlay);
   border-radius: 10px;
   border: 1px solid var(--el-border-color-lighter);
   box-shadow: var(--el-box-shadow-light);
+  overflow: hidden; /* 确保圆角 */
+  display: flex;
+  flex-direction: column;
+}
+
+.shh-content {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .shh-title {
   font-weight: 600;
+  font-size: 1rem;
   color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 0.5rem;
 }
 
 /* 新增：封面区域（在标题下方） */
 .shh-cover {
-  margin-top: 12px;
+  margin-top: 0;
   width: 100%;
-  /* 将封面高度缩小约 1/3：由 16/9 调整为 16/6 */
-  aspect-ratio: 16 / 6;
+  /* 将封面高度调整为标准 16:9 */
+  aspect-ratio: 16 / 9;
   background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,7 +139,7 @@ const handleCoverClick = () => {
 
 /* 描述文本：固定两行高度，超出省略，确保卡片布局稳定 */
 .shh-desc {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   font-size: 0.875rem;
   line-height: 1.5rem;
   color: var(--el-text-color-secondary);
@@ -132,6 +149,7 @@ const handleCoverClick = () => {
   -webkit-line-clamp: 2;        /* 限制为两行 */
   -webkit-box-orient: vertical; /* 垂直排布以支持 clamp */
   word-break: break-word;
+  flex: 1;
 }
 
 /* 操作区（左右两侧） */

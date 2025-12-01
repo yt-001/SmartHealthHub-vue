@@ -1,12 +1,12 @@
 <template>
-  <!-- 医生端-我的文章：使用 MediaCard 展示数据 -->
+  <!-- 医生端-我的视频 -->
   <div style="padding:16px;" v-loading="loading">
     <div v-if="list.length > 0" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 320px)); gap: 16px; justify-content: start;">
       <MediaCard
         v-for="it in list"
         :key="it.id"
         :title="it.title"
-        :description="it.summary || '暂无摘要'"
+        :description="it.description || '暂无简介'"
         :cover-url="it.coverImageUrl"
         primary-text="查看详情"
         secondary-text="编辑"
@@ -18,7 +18,7 @@
         @secondary="onSecondary(it)"
       />
     </div>
-    <el-empty v-else description="暂无文章数据" />
+    <el-empty v-else description="暂无视频数据" />
     
     <div style="margin-top: 20px; display: flex; justify-content: center;" v-if="total > 0">
        <el-pagination
@@ -37,8 +37,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import MediaCard from '@/components/MediaCard.vue'
-import { fetchArticleReviewList } from '@/api/modules/article'
-import type { HealthArticleReviewVO } from '@/api/types/articleTypes'
+import { fetchVideoReviewList } from '@/api/modules/video'
 
 const router = useRouter()
 const loading = ref(false)
@@ -47,19 +46,15 @@ const total = ref(0)
 const pageNum = ref(1)
 const pageSize = ref(12)
 
-// 中文注释：切换左下角显示；true=编辑按钮，false=播放/点赞
 const showEdit = ref(true)
 
 const loadList = async () => {
   loading.value = true
   try {
-    // 尝试获取文章列表
-    // 注意：HealthArticleReviewVO 类型定义中可能缺少 summary/coverImageUrl，
-    // 如果后端确实返回了这些字段，这里可以直接使用。如果不返回，卡片将显示占位符。
-    const res = await fetchArticleReviewList({
+    const res = await fetchVideoReviewList({
       pageNum: pageNum.value,
       pageSize: pageSize.value,
-      query: {} 
+      query: {}
     })
     if (res.data) {
       list.value = res.data.list
@@ -67,7 +62,7 @@ const loadList = async () => {
     }
   } catch (error) {
     console.error(error)
-    ElMessage.error('获取文章列表失败')
+    ElMessage.error('获取视频列表失败')
   } finally {
     loading.value = false
   }
@@ -77,15 +72,17 @@ onMounted(() => {
   loadList()
 })
 
+/** 查看视频详情（进入发布页查看模式） */
 const onPrimary = (it: any) => {
-  // 跳转到文章发布页（查看模式）
-  router.push({ path: '/portal/doctor/article-publish', query: { id: it.id, mode: 'view' } })
+  router.push({ path: '/portal/doctor/video-publish', query: { id: it.id, mode: 'view' } })
 }
 
+/** 编辑视频（进入发布页编辑模式） */
 const onSecondary = (it: any) => {
-  // 跳转到文章发布页（编辑模式）
-  router.push({ path: '/portal/doctor/article-publish', query: { id: it.id, mode: 'edit' } })
+  router.push({ path: '/portal/doctor/video-publish', query: { id: it.id, mode: 'edit' } })
 }
 </script>
+
 <style scoped>
+/* 保留空样式块以便后续增强 */
 </style>

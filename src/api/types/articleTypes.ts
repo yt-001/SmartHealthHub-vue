@@ -77,3 +77,25 @@ export interface HealthArticleReviewVO {
 
 /** 分页结果类型：文章列表 */
 export type ArticleReviewPageResult = PageResult<HealthArticleReviewVO>
+
+/** 健康文章创建DTO */
+export interface HealthArticleCreateDTO {
+  /** 文章标题 */
+  title: string
+  /** 文章摘要 */
+  summary?: string
+  /** 文章内容 */
+  content: string
+  /** 文章封面图片URL */
+  coverImageUrl?: string
+  /** 作者ID */
+  authorId: number
+  /** 科室ID */
+  deptId?: number
+  /** 文章分类/标签（JSON格式存储分类ID列表） */
+  category?: string
+  /** 是否置顶：0 否 1 是 */
+  isTop?: number
+  /** 状态：0 草稿 1 已发布 2 已下架 */
+  status?: number
+}
