@@ -18,8 +18,8 @@ import type {
 } from '../types/articleTypes'
 import type { PageResult, BasePageQuery } from '../types/index'
 
-/** 后端路径占位：请按后端真实接口修改为正确路径 */
-const ARTICLE_REVIEW_LIST_PATH = '/health-articles/page'
+/** 后端路径：管理员分页列表 */
+const ARTICLE_REVIEW_LIST_PATH = '/health-articles/admin/page'
 const ARTICLE_REVIEW_DETAIL_BASE = '/health-articles'
 
 /** ---------------- 文章分类管理接口 ---------------- */
@@ -63,6 +63,7 @@ export function deleteArticleCategory(id: number | string) {
 export function fetchArticleRelatedCategories(articleId: number | string) {
   return request.get(`/health-articles/article-category-relations/article/${articleId}`) as Promise<ApiResponse<CategorySimpleVO[]>>
 }
+
 
 /**
  * 根据作者ID分页查询健康文章
@@ -146,3 +147,6 @@ export function createArticle(data: HealthArticleCreateDTO) {
 export function updateArticle(data: any) {
   return request.put('/health-articles/update', data) as Promise<ApiResponse<string>>
 }
+/**
+ * 说明：管理员端不使用单独的更新接口，直接复用通用更新接口
+ */

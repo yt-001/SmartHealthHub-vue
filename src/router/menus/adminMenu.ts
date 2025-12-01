@@ -52,6 +52,22 @@ const adminMenu: MenuItem[] = [
     ],
   },
   {
+    title: "文章管理",
+    icon: "Document",
+    children: [
+      { title: "文章列表", path: "/portal/admin/article-list", icon: "Document" },
+      { title: "文章分类管理", path: "/portal/admin/article-category-manage", icon: "CollectionTag" },
+    ],
+  },
+  {
+    title: "视频管理",
+    icon: "VideoCamera",
+    children: [
+      { title: "视频列表", path: "/portal/admin/video-list", icon: "VideoCamera" },
+      { title: "视频分类管理", path: "/portal/admin/video-category-manage", icon: "CollectionTag" },
+    ],
+  },
+  {
     title: "科室/排班",
     icon: "Calendar",
     children: [

@@ -64,6 +64,12 @@ const routes: RouteRecordRaw[] = [
       { path: 'admin/user-manage', component: () => import('@/views/RoleDashboard/AdminSide/UserManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '用户管理' } },
       { path: 'admin/case-archive-manage', component: () => import('@/views/RoleDashboard/AdminSide/CaseArchiveManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '病例档案管理' } },
       { path: 'admin/carousel-items', component: () => import('@/views/RoleDashboard/AdminSide/CarouselItemsManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '首页图片管理' } },
+      { path: 'admin/article-category-manage', component: () => import('@/views/RoleDashboard/AdminSide/ArticleCategoryManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '文章分类管理' } },
+      { path: 'admin/video-category-manage', component: () => import('@/views/RoleDashboard/AdminSide/VideoCategoryManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '视频分类管理' } },
+      { path: 'admin/article-list', component: () => import('@/views/RoleDashboard/AdminSide/ArticleList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '文章列表' } },
+      { path: 'admin/video-list', component: () => import('@/views/RoleDashboard/AdminSide/VideoList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '视频列表' } },
+      { path: 'admin/article-edit', component: () => import('@/views/RoleDashboard/AdminSide/AdminArticleEdit.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '编辑文章' } },
+      { path: 'admin/video-edit', component: () => import('@/views/RoleDashboard/AdminSide/AdminVideoEdit.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '编辑视频' } },
 
       // 审核模块：医生/患者认证审核列表与详情
       { path: 'admin/doctor-cert-review', component: () => import('@/views/RoleDashboard/AdminSide/DoctorCertReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生认证审核' } },

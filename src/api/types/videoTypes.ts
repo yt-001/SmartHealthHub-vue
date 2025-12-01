@@ -70,6 +70,8 @@ export interface HealthVideoReviewVO {
   coverImageUrl: string
   /** 视频时长（秒） */
   duration: number
+  /** 分类列表（管理员接口返回） */
+  categories?: { id: number; name: string }[]
   /** 状态：0 草稿 1 已发布 2 已下架 3 审核中 4 未通过审核 */
   status: 0 | 1 | 2 | 3 | 4
   /** 创建时间 */

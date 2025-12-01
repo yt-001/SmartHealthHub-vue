@@ -69,6 +69,8 @@ export interface HealthArticleReviewVO {
   deptName: string
   /** 文章分类/标签 */
   category: string
+  /** 分类列表（管理员接口返回） */
+  categories?: { id: number; name: string }[]
   /** 浏览次数 */
   viewCount: number
   /** 状态：0 草稿 1 已发布 2 已下架 3 审核中 4 未通过审核 */
