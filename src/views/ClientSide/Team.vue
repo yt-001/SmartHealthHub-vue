@@ -61,7 +61,7 @@
           
           <!-- 交互按钮 -->
           <div class="action-row">
-            <button class="book-btn">
+            <button class="book-btn" @click="handleBook(doctor)">
               <span>预约挂号</span>
               <el-icon><ArrowRight /></el-icon>
             </button>
@@ -72,12 +72,61 @@
         </div>
       </div>
     </div>
+
+    
+
+    <!-- 最终确认弹窗（如图样式） -->
+    <el-dialog
+      v-model="finalConfirmVisible"
+      title="预约确认"
+      width="520px"
+      append-to-body
+    >
+      <div class="confirm-appoint">
+        <div class="confirm-row">
+          <span class="label">就诊医生：</span>
+          <span class="value">{{ selectedShift?.doctorName }}（{{ selectedShift?.title || '医师' }}）</span>
+        </div>
+        <div class="confirm-row">
+          <span class="label">就诊科室：</span>
+          <span class="value">{{ selectedShift?.deptName }}</span>
+        </div>
+        <div class="confirm-row">
+          <span class="label">就诊时间：</span>
+          <span class="value">{{ selectedDate }} {{ selectedShift ? getShiftLabel(selectedShift.shiftCode) : '' }}</span>
+        </div>
+        <div class="confirm-row">
+          <span class="label">就诊诊室：</span>
+          <span class="value">{{ selectedShift?.roomNo || '待定' }}</span>
+        </div>
+        <div class="confirm-row">
+          <span class="label">病情描述</span>
+        </div>
+        <el-input
+          v-model="appointmentDescription"
+          type="textarea"
+          :rows="4"
+          placeholder="请简要描述您的症状（选填）"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="finalConfirmVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" :disabled="!selectedShift" @click="confirmAppointment(Number(selectedShift!.id))">确认预约</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Trophy, ArrowRight, StarFilled } from '@element-plus/icons-vue'
+import { createAppointment } from '@/api/modules/appointment'
+import { fetchScheduleCalendarByRange } from '@/api/modules/schedule'
+import type { DoctorScheduleItem } from '@/api/types/scheduleTypes'
+import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
+
+const userStore = useUserStore()
 
 /**
  * 医生团队展示页
@@ -169,6 +218,118 @@ const doctors = ref<Doctor[]>([
 
 const toggleLike = (index: number) => {
   doctors.value[index].isLiked = !doctors.value[index].isLiked
+}
+
+// --- 预约相关逻辑 ---
+const finalConfirmVisible = ref(false)
+const selectedDoctorId = ref<number | undefined>(undefined)
+const selectedDate = ref('')
+const selectedShift = ref<DoctorScheduleItem | null>(null)
+const appointmentDescription = ref('')
+const submitting = ref(false)
+
+// 班次映射
+const shiftCodeMap: Record<string, string> = {
+  'M': '上午',
+  'A': '下午',
+  'N': '晚上',
+  'AM': '上午',
+  'PM': '下午',
+  'FULL': '全天'
+}
+
+/** 获取班次中文标签 */
+function getShiftLabel(code: string) {
+  return shiftCodeMap[code] || code
+}
+
+// 处理点击预约挂号
+async function handleBook(doctor: Doctor) {
+  if (!userStore.userInfo?.id) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  selectedDoctorId.value = doctor.id
+
+  try {
+    const today = new Date()
+    const startDate = formatDate(today)
+    const endDate = formatDate(addDays(today, 30))
+
+    const { data } = await fetchScheduleCalendarByRange({
+      startDate,
+      endDate,
+      doctorId: doctor.id
+    } as any)
+
+    const list = data || []
+    const pick = list.find(it => (it.maxAppoint - (it.bookedCount || 0)) > 0) || list[0]
+    if (!pick) {
+      ElMessage.info('该医生暂无可预约排班')
+      return
+    }
+
+    selectedShift.value = pick
+    selectedDate.value = pick.scheduleDate
+    appointmentDescription.value = ''
+    finalConfirmVisible.value = true
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('加载排班失败，请稍后重试')
+  }
+}
+
+// 处理日历日期选择
+/* 保留占位符以防未来扩展（当前不展示日历） */
+function handleDateSelect() {}
+
+/** 选择具体班次后，进入最终确认弹窗 */
+function openConfirm(shift: DoctorScheduleItem) {
+  selectedShift.value = shift
+  finalConfirmVisible.value = true
+}
+
+// 确认预约
+async function confirmAppointment(scheduleId: number) {
+  if (!userStore.userInfo?.id) return
+  
+  try {
+    submitting.value = true
+    const res = await createAppointment({
+      scheduleId,
+      patientId: userStore.userInfo.id,
+      description: appointmentDescription.value
+    })
+    
+    if (res.code === 200) {
+      ElMessage.success('预约申请已提交成功！')
+      finalConfirmVisible.value = false
+      // 通知“我的预约”页面刷新列表
+      window.dispatchEvent(new CustomEvent('appointments:refresh'))
+    } else {
+      ElMessage.error(res.msg || '预约失败')
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('预约请求发生错误')
+  } finally {
+    submitting.value = false
+  }
+}
+
+/** 日期工具：YYYY-MM-DD */
+function formatDate(dt: Date) {
+  const y = dt.getFullYear()
+  const m = String(dt.getMonth() + 1).padStart(2, '0')
+  const d = String(dt.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/** 日期工具：加天数 */
+function addDays(dt: Date, days: number) {
+  const copy = new Date(dt)
+  copy.setDate(copy.getDate() + days)
+  return copy
 }
 </script>
 
@@ -451,5 +612,89 @@ const toggleLike = (index: number) => {
 
 .is-liked {
   color: #f59e0b;
+}
+
+/* 班次选择弹窗样式 */
+.shift-selection {
+  padding: 10px;
+}
+
+.hint-text {
+  margin-bottom: 16px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.shift-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.shift-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  background-color: #fff;
+  transition: all 0.2s;
+}
+
+.shift-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shift-info {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.shift-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.room-info, .quota-info {
+  font-size: 13px;
+  color: #909399;
+  background: #f5f7fa;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.description-input .label {
+  margin-bottom: 8px;
+  color: #606266;
+  font-weight: 500;
+}
+
+/* 预约确认弹窗样式（与个人中心一致） */
+.confirm-appoint {
+  padding: 10px;
+}
+.confirm-row {
+  display: flex;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+.confirm-row .label {
+  width: 80px;
+  color: #606266;
+  font-weight: 500;
+}
+.confirm-row .value {
+  flex: 1;
+  color: #303133;
+}
+.sub-text {
+  font-size: 0.9em;
+  color: #909399;
+  margin-left: 4px;
 }
 </style>

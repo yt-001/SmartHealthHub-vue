@@ -227,12 +227,26 @@ async function onDelete(row: VideoCategoriesVO) {
  * @param row 行对象
  * @param val 启用状态
  */
+/**
+ * 启停切换（传完整更新DTO，避免后端校验不通过）
+ * @param row 当前分类行
+ * @param val 切换后的启用布尔值
+ */
 async function toggleEnabled(row: VideoCategoriesVO, val: boolean) {
   try {
-    await updateVideoCategory({ id: row.id, isEnabled: val ? 1 : 0 })
-    row.isEnabled = val ? 1 : 0
+    const payload = {
+      id: row.id,
+      name: row.name,
+      description: row.description ?? '',
+      sortOrder: row.sortOrder ?? 0,
+      isEnabled: val ? 1 : 0
+    }
+    await updateVideoCategory(payload)
+    row.isEnabled = payload.isEnabled
     ElMessage.success('状态已更新')
-  } catch (e) { ElMessage.error('更新失败') }
+  } catch (e) {
+    ElMessage.error('更新失败')
+  }
 }
 
 /**

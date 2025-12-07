@@ -31,6 +31,7 @@ export type ShiftCode = 'AM' | 'PM' | 'FULL'
 
 /** 医生排班条目（与后端示例字段一致） */
 export interface DoctorScheduleItem {
+  bookedCount: number
   id: string
   createdAt: string
   updatedAt: string
@@ -44,6 +45,14 @@ export interface DoctorScheduleItem {
   deptName: string
   /** 职称 */
   title: string
+  /** 诊室编号 */
+  roomNo?: string
+  /** 最大预约数 */
+  maxAppoint: number
+  /** 已预约数 */
+  appointedCount?: number
+  /** 额外JSON信息 */
+  extraJson?: string
 }
 
 /** 月度排班查询参数 */

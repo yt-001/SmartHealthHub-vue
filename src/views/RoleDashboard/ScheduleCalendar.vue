@@ -231,6 +231,26 @@ import type {
 import { ElMessage, type FormInstance } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 
+// 中文注释：接收父组件传参
+const props = defineProps({
+  shrunk: {
+    type: Boolean,
+    default: false
+  },
+  doctorId: {
+    type: [Number, String],
+    default: undefined
+  }
+})
+
+// 中文注释：定义事件
+const emit = defineEmits(['date-select'])
+
+// 中文注释：监听 doctorId 变化重新加载
+watch(() => props.doctorId, () => {
+  reload()
+})
+
 // 中文注释：添加排班表单的引用
 const addFormRef = ref<FormInstance>()
 
@@ -248,8 +268,8 @@ const rules = reactive({
 // 中文注释：为表单数据定义接口以确保类型安全
 interface ScheduleForm {
   scheduleDate: string
-  deptId: number | undefined
-  doctorId: number | undefined
+  deptId: string | undefined
+  doctorId: string | undefined
   shiftCode: ShiftCode | ''
   roomNo: string
   maxAppoint: number
@@ -268,8 +288,8 @@ const addScheduleForm = ref<ScheduleForm>({
 })
 
 // 中文注释：用于下拉选择的数据
-const allDeptOptions = ref<{ label: string; value: number }[]>([])
-const allDoctorOptions = ref<{ label: string; value: number }[]>([])
+const allDeptOptions = ref<{ label: string; value: string }[]>([])
+const allDoctorOptions = ref<{ label: string; value: string }[]>([])
 const roomOptions = ref<{ label: string; value: string }[]>([])
 const isSelectDataLoaded = ref(false)
 
@@ -291,7 +311,7 @@ const queryDeptSearch = (queryString: string, cb: (arg: any) => void) => {
 }
 
 // 从科室搜索结果中选择
-const handleDeptSearchSelect = (item: { value: string; id: number }) => {
+const handleDeptSearchSelect = (item: { value: string; id: string }) => {
   if (item.id) {
     addScheduleForm.value.deptId = item.id
     deptSearch.value = item.value
@@ -299,7 +319,7 @@ const handleDeptSearchSelect = (item: { value: string; id: number }) => {
 }
 
 // 当左侧科室选择框变化时，同步更新右侧搜索框的文本
-const handleDeptSelectChange = (deptId: number) => {
+const handleDeptSelectChange = (deptId: string) => {
   const selected = allDeptOptions.value.find(opt => opt.value === deptId)
   if (selected) {
     deptSearch.value = selected.label
@@ -319,7 +339,7 @@ const queryDoctorSearch = (queryString: string, cb: (arg: any) => void) => {
 }
 
 // 从医生搜索结果中选择
-const handleDoctorSearchSelect = (item: { value: string; id: number }) => {
+const handleDoctorSearchSelect = (item: { value: string; id: string }) => {
   if (item.id) {
     addScheduleForm.value.doctorId = item.id
     doctorSearch.value = item.value
@@ -327,7 +347,7 @@ const handleDoctorSearchSelect = (item: { value: string; id: number }) => {
 }
 
 // 当左侧医生选择框变化时，同步更新右侧搜索框的文本
-const handleDoctorSelectChange = (doctorId: number) => {
+const handleDoctorSelectChange = (doctorId: string) => {
   const selected = allDoctorOptions.value.find(opt => opt.value === doctorId)
   if (selected) {
     doctorSearch.value = selected.label
@@ -441,6 +461,11 @@ const onMonthChange = (val: string) => {
 
 /** 中文注释：点击日期，弹窗展示该日排班医生列表 */
 const openDayDialog = (dayStr: string) => {
+  // 中文注释：如果是缩小模式，则触发事件给父组件处理，不打开弹窗
+  if (props.shrunk) {
+    emit('date-select', dayStr, schedules.value[dayStr] || [])
+    return
+  }
   dialogTitle.value = `排班（${dayStr}）`
   currentDayItems.value = schedules.value[dayStr] || []
   dialogVisible.value = true
@@ -482,17 +507,26 @@ async function loadSchedules(ym: string): Promise<Record<string, DoctorScheduleI
     const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`
 
     // 从页面/用户状态提取查询维度：
-    // - 若当前登录为医生，则自动携带 doctorId；非医生角色不传
-    const rawUserId = (userStore as any)?.userInfo?.id
-    const rawRole = (userStore as any)?.userInfo?.role
-    const role = roleMap[rawRole] ?? ''
-    const doctorId = role === 'doctor' && Number.isFinite(Number(rawUserId)) ? Number(rawUserId) : undefined
+    // - 若传入 doctorId prop，则优先使用
+    // - 否则，若当前登录为医生，则自动携带 doctorId；非医生角色不传
+    let queryDoctorId: number | undefined = undefined
+
+    if (props.doctorId) {
+      queryDoctorId = Number(props.doctorId)
+    } else {
+      const rawUserId = (userStore as any)?.userInfo?.id
+      const rawRole = (userStore as any)?.userInfo?.role
+      const role = roleMap[rawRole] ?? ''
+      if (role === 'doctor' && Number.isFinite(Number(rawUserId))) {
+        queryDoctorId = Number(rawUserId)
+      }
+    }
 
     // - 科室过滤暂不传；如需按科室过滤，可在页面添加选择器后写入 deptId
     const query = {
       startDate: firstDay,
       endDate: lastDay,
-      doctorId,
+      doctorId: queryDoctorId,
       // deptId: 可根据页面筛选控件设置
     }
 
@@ -599,8 +633,8 @@ const loadSelectOptions = async () => {
     const { data } = await fetchDoctorDeptList()
     if (!data) return
 
-    const deptMap = new Map<number, string>()
-    const doctorMap = new Map<number, string>()
+    const deptMap = new Map<string, string>()
+    const doctorMap = new Map<string, string>()
     const roomSet = new Set<string>()
 
     data.forEach(item => {
@@ -873,5 +907,28 @@ const resetForm = () => {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   width: 100%;
+}
+
+/* 缩小模式适配 */
+.schedule-page.is-shrunk {
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.schedule-page.is-shrunk .date-cell {
+  min-height: 40px;
+  padding: 2px;
+}
+.schedule-page.is-shrunk .schedule-list-wrapper {
+  display: none;
+}
+.schedule-page.is-shrunk .empty-tip {
+  display: none;
+}
+.schedule-page.is-shrunk :deep(.el-calendar__header) {
+  padding: 12px 0;
+}
+.schedule-page.is-shrunk :deep(.el-calendar__body) {
+  padding: 0;
 }
 </style>

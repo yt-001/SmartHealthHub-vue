@@ -46,6 +46,9 @@
                 <el-dropdown-item command="profile">
                   <el-icon><User /></el-icon>个人中心
                 </el-dropdown-item>
+                <el-dropdown-item command="records">
+                  <el-icon><Document /></el-icon>我的病例
+                </el-dropdown-item>
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>退出登录
                 </el-dropdown-item>
@@ -77,7 +80,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, Monitor, User, SwitchButton } from '@element-plus/icons-vue'
+import { ArrowDown, Monitor, User, SwitchButton, Document } from '@element-plus/icons-vue'
 import { logout as apiLogout } from '@/api/modules/user'
 
 const router = useRouter()
@@ -114,7 +117,11 @@ const initials = computed(() => {
 // 下拉菜单命令处理
 const onMenuCommand = async (cmd: string) => {
   if (cmd === 'profile') {
-    await router.push('/portal/profile')
+    await router.push('/client/user-center')
+    return
+  }
+  if (cmd === 'records') {
+    await router.push('/client/medical-records')
     return
   }
   if (cmd === 'logout') {

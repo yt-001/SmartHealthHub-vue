@@ -5,7 +5,7 @@
  * - 返回统一分页结构 PageResponse<MedicalRecordItem>
  */
 import request from '../http'
-import type { PageResponse } from '../types'
+import type { PageResponse, ApiResponse } from '../types'
 import type { MedicalRecordItem } from '../types/medicalRecordTypes'
 
 /**
@@ -23,4 +23,18 @@ export const getMedicalRecordPage = (payload: any): Promise<PageResponse<Medical
 
 export const medicalRecordApi = {
   getMedicalRecordPage
+}
+
+/**
+ * 获取指定用户的病例列表（分页）
+ * @param userId 用户ID
+ * @param payload 分页与筛选参数
+ */
+/**
+ * 根据患者ID获取全部病例历史（GET，无分页）
+ * @param userId 患者ID
+ * @returns 统一响应体，data 为病例历史列表
+ */
+export const getMedicalRecordsByUserId = (userId: string | number): Promise<ApiResponse<MedicalRecordItem[]>> => {
+  return request.get(`/medicalRecords/user/${userId}`) as Promise<ApiResponse<MedicalRecordItem[]>>
 }
