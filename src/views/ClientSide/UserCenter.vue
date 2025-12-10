@@ -264,8 +264,8 @@ async function confirmAppointment() {
   submitting.value = true
   try {
     const res = await createAppointment({
-      scheduleId: Number(selectedDoctorSchedule.value.id),
-      patientId: store.userInfo.id,
+      scheduleId: String(selectedDoctorSchedule.value.id),
+      patientId: String(store.userInfo.id),
       description: appointmentDescription.value
     })
     

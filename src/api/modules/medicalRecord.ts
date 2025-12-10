@@ -38,3 +38,24 @@ export const medicalRecordApi = {
 export const getMedicalRecordsByUserId = (userId: string | number): Promise<ApiResponse<MedicalRecordItem[]>> => {
   return request.get(`/medicalRecords/user/${userId}`) as Promise<ApiResponse<MedicalRecordItem[]>>
 }
+
+/**
+ * 创建病例档案
+ * POST /medicalRecords/create
+ */
+export interface CreateMedicalRecordDTO {
+  userId: string
+  doctorId: string
+  appointmentId?: string
+  visitDate?: string
+  symptoms?: string
+  diagnosis?: string
+  treatmentPlan?: string
+  prescription?: string
+  notes?: string
+  status?: number
+}
+
+export const createMedicalRecord = (data: CreateMedicalRecordDTO): Promise<ApiResponse<any>> => {
+  return request.post('/medicalRecords/create', data) as Promise<ApiResponse<any>>
+}

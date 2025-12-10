@@ -2,16 +2,16 @@ import request from '../http'
 import { ApiResponse, PageResult, BasePageQuery } from '@/api/types'
 
 export interface CreateAppointmentDTO {
-  scheduleId: number
-  patientId: number
+  scheduleId: string
+  patientId: string
   description?: string
   registrationNo?: string
 }
 
 export interface AppointmentItem {
-  id: number
-  scheduleId: number
-  patientId: number
+  id: string
+  scheduleId: string
+  patientId: string
   status: number // 0:待确认, 1:已确认, 2:已完成, 3:已取消
   description: string
   registrationNo: string
@@ -27,10 +27,15 @@ export interface AppointmentItem {
   roomNo?: string
   maxAppoint?: number
   usedAppoint?: number
+  // 患者信息
+  patientName?: string
+  patientGender?: string
+  patientBirthDate?: string
+  patientPhone?: string
 }
 
 export interface AppointmentQuery extends BasePageQuery {
-  patientId?: number
+  patientId?: string
   status?: number
 }
 
@@ -38,8 +43,8 @@ export interface AppointmentQuery extends BasePageQuery {
  * 预约查询类（对接后端升级版本）
  */
 export interface AppointmentQueryV2 {
-  doctorId?: number
-  patientId?: number
+  doctorId?: string
+  patientId?: string
   status?: number // 0待确认 1已确认 2已就诊 3已取消
   startTime?: string
   endTime?: string
@@ -66,7 +71,7 @@ export const fetchAppointmentList = async (params: AppointmentQuery): Promise<Ap
  * 2. 根据ID获取预约详情
  * GET /appointments/{id}
  */
-export const getAppointmentDetail = async (id: number): Promise<ApiResponse<AppointmentItem>> => {
+export const getAppointmentDetail = async (id: string): Promise<ApiResponse<AppointmentItem>> => {
   return request.get(`/appointments/${id}`) as Promise<ApiResponse<AppointmentItem>>
 }
 
@@ -74,14 +79,14 @@ export const getAppointmentDetail = async (id: number): Promise<ApiResponse<Appo
  * 3. 根据患者ID获取预约列表
  * GET /appointments/patient/{patientId}
  */
-export const getAppointmentsByPatient = async (patientId: number): Promise<ApiResponse<AppointmentItem[]>> => {
+export const getAppointmentsByPatient = async (patientId: string): Promise<ApiResponse<AppointmentItem[]>> => {
   return request.get(`/appointments/patient/${patientId}`) as Promise<ApiResponse<AppointmentItem[]>>
 }
 
 /**
  * 根据患者ID分页查询预约列表（升级版：支持条件查询）
  */
-export const getAppointmentsByPatientPaged = async (patientId: number, param: AppointmentPageParam): Promise<ApiResponse<PageResult<AppointmentItem>>> => {
+export const getAppointmentsByPatientPaged = async (patientId: string, param: AppointmentPageParam): Promise<ApiResponse<PageResult<AppointmentItem>>> => {
   // 后端要求 query 中也包含 patientId
   const payload: AppointmentPageParam = { ...param, query: { ...(param.query || {}), patientId } }
   return request.post(`/appointments/patient/${patientId}/page`, payload) as Promise<ApiResponse<PageResult<AppointmentItem>>>
@@ -90,7 +95,7 @@ export const getAppointmentsByPatientPaged = async (patientId: number, param: Ap
 /**
  * 根据医生ID分页查询预约列表（升级版：支持条件查询）
  */
-export const getAppointmentsByDoctorPaged = async (doctorId: number, param: AppointmentPageParam): Promise<ApiResponse<PageResult<AppointmentItem>>> => {
+export const getAppointmentsByDoctorPaged = async (doctorId: string, param: AppointmentPageParam): Promise<ApiResponse<PageResult<AppointmentItem>>> => {
   const payload: AppointmentPageParam = { ...param, query: { ...(param.query || {}), doctorId } }
   return request.post(`/appointments/doctor/${doctorId}/page`, payload) as Promise<ApiResponse<PageResult<AppointmentItem>>>
 }
@@ -99,7 +104,7 @@ export const getAppointmentsByDoctorPaged = async (doctorId: number, param: Appo
  * 4. 根据医生排班ID获取预约列表
  * GET /appointments/schedule/{scheduleId}
  */
-export const getAppointmentsBySchedule = async (scheduleId: number): Promise<ApiResponse<AppointmentItem[]>> => {
+export const getAppointmentsBySchedule = async (scheduleId: string): Promise<ApiResponse<AppointmentItem[]>> => {
   return request.get(`/appointments/schedule/${scheduleId}`) as Promise<ApiResponse<AppointmentItem[]>>
 }
 
@@ -121,7 +126,7 @@ export const createAppointment = async (data: CreateAppointmentDTO): Promise<Api
  * 7. 更新预约状态
  * PUT /appointments/{id}/status
  */
-export const updateAppointmentStatus = async (id: number, status: number): Promise<ApiResponse<any>> => {
+export const updateAppointmentStatus = async (id: string, status: number): Promise<ApiResponse<any>> => {
   return request.put(`/appointments/${id}/status`, null, {
     params: { status }
   }) as Promise<ApiResponse<any>>

@@ -9,17 +9,6 @@ import type { ApiResponse } from '@/api/types'
 import type { DoctorProfilesVO } from '@/api/types/doctorTypes'
 
 /**
- * 获取医生分页列表
- * 约定后端路径：POST /admin/doctors/page
- * - 支持分页与筛选参数
- * - 返回 PageResponse<DoctorItem>
- */
-/**
- * 获取医生分页列表（将前端查询参数统一转换为后端入参）
- * 前端：DoctorListParams { page, pageSize, deptId, title, status, createdRange }
- * 后端：{ pageNum, pageSize, deptId, title, status, createdStart, createdEnd }
- */
-/**
  * 期望入参：已在页面层完成 page→pageNum 的字段映射与必要清理
  * 例如：{ pageNum, pageSize, title, deptId, status, ... }
  */

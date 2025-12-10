@@ -240,11 +240,11 @@ function nowString(): string {
 async function fetchData() {
   loading.value = true
   try {
-    const res = await getAppointmentsByPatientPaged(Number(store.userInfo?.id), {
+    const res = await getAppointmentsByPatientPaged(String(store.userInfo?.id || ''), {
       pageNum: query.pageNum,
       pageSize: query.pageSize,
       query: {
-        patientId: Number(store.userInfo?.id),
+        patientId: String(store.userInfo?.id || ''),
         status: query.status,
         startTime: startTime.value || undefined,
         endTime: (endTime.value || nowString())

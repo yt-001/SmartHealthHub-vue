@@ -21,16 +21,6 @@ export interface MenuItem {
 // 医生端菜单：按照“模块 -> 子功能”组织
 const doctorMenu: MenuItem[] = [
   {
-    title: "患者管理",
-    icon: "User",
-    children: [
-      { title: "患者列表", path: "/portal/doctor/patient-list", icon: "List" },
-      { title: "电子病历", path: "/portal/doctor/emr", icon: "Document" },
-      { title: "就诊记录", path: "/portal/doctor/visit-records", icon: "Notebook" },
-      { title: "历史诊疗查询", path: "/portal/doctor/history-search", icon: "Clock" },
-    ],
-  },
-  {
     title: "诊疗功能",
     icon: "FirstAidKit",
     children: [
@@ -45,12 +35,21 @@ const doctorMenu: MenuItem[] = [
     ],
   },
   {
-    title: "预约与排班",
+    title: "医生排班",
     icon: "Calendar",
     children: [
-      { title: "患者挂号信息", path: "/portal/doctor/registration", icon: "Notebook" },
-      { title: "预约审核", path: "/portal/doctor/appointment-review", icon: "CircleCheck" },
       { title: "医生排班查看", path: "/portal/schedule", icon: "Calendar" },
+    ],
+  },
+  {
+    title: "患者及预约",
+    icon: "User",
+    children: [
+      { title: "患者预约处理", path: "/portal/doctor/patient-appointment-process", icon: "Calendar" },
+      { title: "患者列表", path: "/portal/doctor/patient-list", icon: "List" },
+      { title: "电子病历", path: "/portal/doctor/emr", icon: "Document" },
+      { title: "就诊记录", path: "/portal/doctor/visit-records", icon: "Notebook" },
+      { title: "历史诊疗查询", path: "/portal/doctor/history-search", icon: "Clock" },
     ],
   },
   {

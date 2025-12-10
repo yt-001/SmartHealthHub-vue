@@ -180,10 +180,10 @@ const fetchList = async () => {
       query: {
         title: title.value || '',
         authorName: uploader.value || '',
-        deptId: null,
+        deptId: undefined,
         category: '',
-        isTop: null,
-        status: null,
+        isTop: undefined,
+        status: undefined,
         statusList: [3, 4],
         createdStart: toDate(begin) || '',
         createdEnd: toDate(end) || ''

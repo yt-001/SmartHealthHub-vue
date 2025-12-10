@@ -18,55 +18,65 @@
         <!-- 卡片背景光效 -->
         <div class="card-glow"></div>
         
-        <!-- 医生形象区 -->
+        <!-- 医生形象区（使用姓名首字作为头像占位） -->
         <div class="doctor-visual">
           <div class="image-wrapper">
-            <img :src="doctor.avatar" :alt="doctor.name" class="doctor-img" />
-          </div>
-          <div class="badge-container" v-if="doctor.isExpert">
-            <div class="gold-medal">
-              <el-icon><Trophy /></el-icon>
-              <span>首席专家</span>
-            </div>
+            <div class="avatar-fallback">{{ (doctor.realName || '医').slice(0,1) }}</div>
           </div>
         </div>
 
         <!-- 信息展示区 -->
         <div class="doctor-info">
-          <div class="name-row">
-            <h2 class="name">{{ doctor.name }}</h2>
-            <span class="title-tag">{{ doctor.title }}</span>
-          </div>
-          <p class="department">{{ doctor.department }}</p>
-          
-          <div class="divider"></div>
-          
-          <!-- 荣耀数据（RPG属性风格） -->
-          <div class="stats-row">
-            <div class="stat-item">
-              <span class="stat-val">{{ doctor.experience }}年</span>
-              <span class="stat-label">从业经验</span>
+          <!-- 头部信息：名字与联系方式并排 -->
+          <div class="info-header-new">
+            <div class="name-block">
+              <div class="name-line">
+                <h2 class="name">{{ doctor.realName }}</h2>
+                <span class="title-tag">{{ doctor.title }}</span>
+              </div>
+              <div class="account-line">账号：{{ doctor.username || '—' }}</div>
             </div>
-            <div class="stat-item">
-              <span class="stat-val">{{ doctor.patients }}+</span>
-              <span class="stat-label">治愈患者</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-val">{{ doctor.satisfaction }}%</span>
-              <span class="stat-label">好评率</span>
+            
+            <div class="contact-block">
+              <div class="contact-row">
+                <el-icon class="icon"><Iphone /></el-icon>
+                <span class="val">{{ doctor.phone || '—' }}</span>
+              </div>
+              <div class="contact-row">
+                <el-icon class="icon"><Message /></el-icon>
+                <span class="val" :title="doctor.email">{{ doctor.email ? (doctor.email.length > 18 ? doctor.email.slice(0,18)+'...' : doctor.email) : '—' }}</span>
+              </div>
             </div>
           </div>
 
-          <p class="intro">{{ doctor.intro }}</p>
+          <div class="divider"></div>
+
+          <!-- 下方信息展示：预约状态与科室ID一排 -->
+          <div class="info-grid-row">
+            <div class="info-col">
+              <span class="label">预约状态</span>
+              <el-tag size="small" :type="getStatusTagType(doctor.status)">{{ getStatusLabel(doctor.status) }}</el-tag>
+            </div>
+            <div class="info-col">
+              <span class="label">科室ID</span>
+              <span class="value">{{ doctor.deptId }}</span>
+            </div>
+          </div>
+          
+          <!-- 执业证书单独一排 -->
+          <div class="info-single-row">
+             <span class="label">执业证书</span>
+             <span class="value">{{ doctor.qualificationNo || '—' }}</span>
+          </div>
           
           <!-- 交互按钮 -->
-          <div class="action-row">
+          <div class="action-row mt-4">
             <button class="book-btn" @click="handleBook(doctor)">
               <span>预约挂号</span>
               <el-icon><ArrowRight /></el-icon>
             </button>
             <button class="like-btn" @click="toggleLike(index)">
-              <el-icon :class="{ 'is-liked': doctor.isLiked }"><StarFilled /></el-icon>
+              <el-icon :class="{ 'is-liked': likedMap[doctor.id] }"><StarFilled /></el-icon>
             </button>
           </div>
         </div>
@@ -111,18 +121,20 @@
       </div>
       <template #footer>
         <el-button @click="finalConfirmVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" :disabled="!selectedShift" @click="confirmAppointment(Number(selectedShift!.id))">确认预约</el-button>
+        <el-button type="primary" :loading="submitting" :disabled="!selectedShift" @click="confirmAppointment(String(selectedShift!.id))">确认预约</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Trophy, ArrowRight, StarFilled } from '@element-plus/icons-vue'
+import { ref, onMounted } from 'vue'
+import { Trophy, ArrowRight, StarFilled, Iphone, Message } from '@element-plus/icons-vue'
 import { createAppointment } from '@/api/modules/appointment'
 import { fetchScheduleCalendarByRange } from '@/api/modules/schedule'
 import type { DoctorScheduleItem } from '@/api/types/scheduleTypes'
+import { getDoctorList } from '@/api/modules/doctor'
+import type { DoctorItem } from '@/api/types/doctorTypes'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 
@@ -133,91 +145,30 @@ const userStore = useUserStore()
  * @description 采用“冠军卡片”风格展示医生风采
  */
 
-interface Doctor {
-  id: number
-  name: string
-  title: string
-  department: string
-  avatar: string
-  experience: number
-  patients: string
-  satisfaction: number
-  intro: string
-  isExpert: boolean
-  isLiked: boolean
-}
+type TeamDoctor = DoctorItem & { username?: string }
+// 真实医生数据（分页前6条）
+const doctors = ref<TeamDoctor[]>([])
+const loadingList = ref(false)
 
-// 模拟医生数据
-const doctors = ref<Doctor[]>([
-  {
-    id: 1,
-    name: '张文宏',
-    title: '主任医师',
-    department: '感染科',
-    avatar: 'https://picsum.photos/400/500?random=101',
-    experience: 25,
-    patients: '5w',
-    satisfaction: 99.8,
-    intro: '长期从事感染性疾病的临床与研究工作，擅长各类疑难感染病的诊断与治疗。',
-    isExpert: true,
-    isLiked: false
-  },
-  {
-    id: 2,
-    name: '李兰娟',
-    title: '教授 / 院士',
-    department: '肝病中心',
-    avatar: 'https://picsum.photos/400/500?random=102',
-    experience: 40,
-    patients: '8w',
-    satisfaction: 99.9,
-    intro: '我国人工肝开拓者，在重型肝炎肝衰竭诊治领域取得了重大突破。',
-    isExpert: true,
-    isLiked: false
-  },
-  {
-    id: 3,
-    name: '钟南山',
-    title: '终身教授',
-    department: '呼吸内科',
-    avatar: 'https://picsum.photos/400/500?random=103',
-    experience: 50,
-    patients: '10w',
-    satisfaction: 100,
-    intro: '中国呼吸病学领军人物，为抗击非典和新冠肺炎疫情做出了巨大贡献。',
-    isExpert: true,
-    isLiked: false
-  },
-  {
-    id: 4,
-    name: '王晓明',
-    title: '副主任医师',
-    department: '心血管内科',
-    avatar: 'https://picsum.photos/400/500?random=104',
-    experience: 15,
-    patients: '1.2w',
-    satisfaction: 98.5,
-    intro: '擅长冠心病、高血压等心血管常见病的诊治及介入治疗。',
-    isExpert: false,
-    isLiked: false
-  },
-   {
-    id: 5,
-    name: '陈静',
-    title: '主治医师',
-    department: '儿科',
-    avatar: 'https://picsum.photos/400/500?random=105',
-    experience: 10,
-    patients: '8k',
-    satisfaction: 99.2,
-    intro: '对小儿呼吸系统、消化系统疾病有丰富的临床经验，深受患儿家长信赖。',
-    isExpert: false,
-    isLiked: false
+onMounted(async () => {
+  try {
+    loadingList.value = true
+    const res: any = await getDoctorList({ pageNum: 1, pageSize: 6, status: 0 })
+    const list = (res?.list ?? res?.data?.list ?? []) as TeamDoctor[]
+    doctors.value = list.map(d => ({ ...d }))
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('医生列表加载失败')
+  } finally {
+    loadingList.value = false
   }
-])
+})
 
+const likedMap = ref<Record<string, boolean>>({})
 const toggleLike = (index: number) => {
-  doctors.value[index].isLiked = !doctors.value[index].isLiked
+  const id = doctors.value[index]?.id
+  if (!id) return
+  likedMap.value[id] = !likedMap.value[id]
 }
 
 // --- 预约相关逻辑 ---
@@ -238,18 +189,52 @@ const shiftCodeMap: Record<string, string> = {
   'FULL': '全天'
 }
 
-/** 获取班次中文标签 */
+/**
+ * 获取班次中文标签
+ * @param code 班次代码
+ */
 function getShiftLabel(code: string) {
   return shiftCodeMap[code] || code
 }
 
-// 处理点击预约挂号
-async function handleBook(doctor: Doctor) {
+// 账号状态映射
+const statusLabelMap: Record<number, string> = {
+  0: '正常',
+  1: '锁定',
+  2: '未激活',
+  3: '已注销'
+}
+/**
+ * 获取预约状态文案（沿用医生账号状态作为占位）
+ * @param s 状态码
+ */
+function getStatusLabel(s: number) {
+  return statusLabelMap[s] ?? '未知'
+}
+/**
+ * 获取预约状态标签样式（沿用账号状态映射）
+ * @param s 状态码
+ */
+function getStatusTagType(s: number) {
+  switch (s) {
+    case 0: return 'success'
+    case 1: return 'warning'
+    case 2: return 'info'
+    case 3: return 'danger'
+    default: return 'info'
+  }
+}
+
+/**
+ * 处理点击预约挂号：拉取近30天排班并进入最终确认弹窗
+ */
+async function handleBook(doctor: TeamDoctor) {
   if (!userStore.userInfo?.id) {
     ElMessage.warning('请先登录')
     return
   }
-  selectedDoctorId.value = doctor.id
+  
+  selectedDoctorId.value = Number(doctor.id)
 
   try {
     const today = new Date()
@@ -284,20 +269,28 @@ async function handleBook(doctor: Doctor) {
 function handleDateSelect() {}
 
 /** 选择具体班次后，进入最终确认弹窗 */
+/**
+ * 选择具体班次后进入最终确认弹窗
+ */
 function openConfirm(shift: DoctorScheduleItem) {
   selectedShift.value = shift
   finalConfirmVisible.value = true
 }
 
-// 确认预约
-async function confirmAppointment(scheduleId: number) {
+/**
+ * 确认预约：提交预约申请并提示结果
+ */
+/**
+ * 确认预约（使用字符串ID避免长整型精度丢失）
+ */
+async function confirmAppointment(scheduleId: string) {
   if (!userStore.userInfo?.id) return
   
   try {
     submitting.value = true
     const res = await createAppointment({
       scheduleId,
-      patientId: userStore.userInfo.id,
+      patientId: String(userStore.userInfo.id),
       description: appointmentDescription.value
     })
     
@@ -317,7 +310,9 @@ async function confirmAppointment(scheduleId: number) {
   }
 }
 
-/** 日期工具：YYYY-MM-DD */
+/**
+ * 日期格式化（YYYY-MM-DD）
+ */
 function formatDate(dt: Date) {
   const y = dt.getFullYear()
   const m = String(dt.getMonth() + 1).padStart(2, '0')
@@ -325,7 +320,9 @@ function formatDate(dt: Date) {
   return `${y}-${m}-${d}`
 }
 
-/** 日期工具：加天数 */
+/**
+ * 日期工具：在指定日期基础上增加天数
+ */
 function addDays(dt: Date, days: number) {
   const copy = new Date(dt)
   copy.setDate(copy.getDate() + days)
@@ -443,15 +440,16 @@ function addDays(dt: Date, days: number) {
   overflow: hidden;
 }
 
-.doctor-img {
+.avatar-fallback {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.champion-card:hover .doctor-img {
-  transform: scale(1.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 96px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-color), #10b981);
 }
 
 /* 勋章 */
@@ -523,42 +521,101 @@ function addDays(dt: Date, days: number) {
   margin: 16px 0;
 }
 
-/* 荣耀数据 */
-.stats-row {
+/* 头部信息布局 */
+.info-header-new {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
 }
-
-.stat-item {
+.name-block {
+  flex: 1;
+}
+.name-line {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
 }
-
-.stat-val {
-  font-size: 18px;
+.name {
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-main);
-  font-family: 'Arial', sans-serif;
 }
-
-.stat-label {
+.title-tag {
   font-size: 12px;
-  color: var(--text-placeholder);
+  color: var(--primary-color);
+  background: var(--primary-light-9);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.account-line {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-.intro {
-  font-size: 14px;
+.contact-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 24px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  height: 66px; /* 3行高度估算 */
+}
+.contact-row .icon {
+  font-size: 14px;
+}
+.contact-row .val {
+  font-family: Consolas, monospace;
+  color: var(--text-main);
+}
+
+/* 下方信息展示 */
+.info-grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.info-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.info-col .label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.info-col .value {
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.info-single-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.info-single-row .label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.info-single-row .value {
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: Consolas, monospace;
+}
+.mt-4 {
+  margin-top: 16px;
 }
 
 /* 交互按钮 */

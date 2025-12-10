@@ -97,7 +97,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'admin/outpatient-slots-preview', component: Error404, meta: { roles: ['admin'], title: '门诊号源预览' } },
 
       // 医生端菜单占位子路由（相对路径，渲染到 RoleDashboard 的 router-view）
-      { path: 'doctor/patient-list', component: Error404, meta: { roles: ['doctor'], title: '患者列表' } },
+      { path: 'doctor/patient-list', component: () => import('@/views/RoleDashboard/DoctorSide/PatientList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '患者详情' } },
       { path: 'doctor/emr', component: Error404, meta: { roles: ['doctor'], title: '电子病历' } },
       { path: 'doctor/visit-records', component: Error404, meta: { roles: ['doctor'], title: '就诊记录' } },
       { path: 'doctor/history-search', component: Error404, meta: { roles: ['doctor'], title: '历史诊疗查询' } },
@@ -105,10 +105,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'doctor/exam-apply', component: Error404, meta: { roles: ['doctor'], title: '检查/检验申请' } },
       { path: 'doctor/diagnosis', component: Error404, meta: { roles: ['doctor'], title: '诊断记录' } },
       { path: 'doctor/medical-orders', component: Error404, meta: { roles: ['doctor'], title: '医嘱管理' } },
-      { path: 'doctor/registration', component: Error404, meta: { roles: ['doctor'], title: '患者挂号信息' } },
-      { path: 'doctor/appointment-review', component: Error404, meta: { roles: ['doctor'], title: '预约审核' } },
+      { path: 'doctor/patient-appointment-process', component: () => import('@/views/RoleDashboard/DoctorSide/PatientAppointmentProcess.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '患者预约处理' } },
       { path: 'doctor/schedule', component: Error404, meta: { roles: ['doctor'], title: '医生排班查看' } },
-      { path: 'doctor/statistics', component: Error404, meta: { roles: ['doctor'], title: '患者数据统计可视化' } },
+      { path: 'doctor/statistics', component: () => import('@/views/RoleDashboard/DoctorSide/PatientStatistics.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '患者数据统计' } },
       // 医生端-我的发布：我的文章、视频发布（占位页面）
       { path: 'doctor/my-articles', component: () => import('@/views/RoleDashboard/DoctorSide/MyArticles.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '文章列表' } },
       { path: 'doctor/article-publish', component: () => import('@/views/RoleDashboard/DoctorSide/ArticlePublish.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '发布文章' } },

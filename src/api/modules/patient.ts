@@ -20,6 +20,15 @@ export function fetchPatientAuthDetail(id: string) {
   return request.get(`/user/profiles/${id}`) as Promise<ApiResponse<PatientAuthenticationDTO>>
 }
 
+/**
+ * 获取患者基本信息（根据ID）
+ * @param id 患者ID
+ */
+export const getPatientById = (id: string | number): Promise<ApiResponse<PatientItem>> => {
+  return request.get(`/admin/patients/${id}`) as Promise<ApiResponse<PatientItem>>
+}
+
 export const patientApi = {
-  getPatientList
+  getPatientList,
+  getPatientById
 }
