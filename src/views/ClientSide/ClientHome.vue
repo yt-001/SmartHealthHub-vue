@@ -21,8 +21,8 @@
         <!-- 中：主导航（居中） -->
         <nav class="main-nav">
           <RouterLink class="nav-item" active-class="active" to="/client/home">首页</RouterLink>
-          <RouterLink class="nav-item" active-class="active" to="/client/health">健康资讯</RouterLink>
-          <RouterLink class="nav-item" active-class="active" to="/client/video">视频大厅</RouterLink>
+          <RouterLink class="nav-item" active-class="active" to="/client/health">健康咨询</RouterLink>
+          <RouterLink class="nav-item" active-class="active" to="/client/medicine">调理推荐</RouterLink>
           <RouterLink class="nav-item" active-class="active" to="/client/blog">专家博客</RouterLink>
           <RouterLink class="nav-item" active-class="active" to="/client/team">名医团队</RouterLink>
         </nav>
@@ -60,7 +60,7 @@
     </header>
 
     <!-- 子页面容器 -->
-    <main class="client-main">
+    <main class="client-main" ref="mainContentRef">
       <router-view />
     </main>
 
@@ -85,18 +85,25 @@ import { logout as apiLogout } from '@/api/modules/user'
 
 const router = useRouter()
 const store = useUserStore()
+const mainContentRef = ref<HTMLElement | null>(null)
 
 // 滚动状态监听
 const isScrolled = ref(false)
 const handleScroll = () => {
-  isScrolled.value = window.scrollY > 20
+  if (mainContentRef.value) {
+    isScrolled.value = mainContentRef.value.scrollTop > 20
+  }
 }
 
 onMounted(() => {
-  window.addEventListener('scroll', handleScroll)
+  if (mainContentRef.value) {
+    mainContentRef.value.addEventListener('scroll', handleScroll)
+  }
 })
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
+  if (mainContentRef.value) {
+    mainContentRef.value.removeEventListener('scroll', handleScroll)
+  }
 })
 
 // 登录态与用户基本信息
@@ -151,14 +158,16 @@ const onMenuCommand = async (cmd: string) => {
 /* 全局布局容器：管理背景色与层级 */
 .client-layout {
   position: relative;
-  min-height: 100vh;
+  height: 100vh; /* 强制占满视口高度 */
   background-color: #f2f7f5; /* 极淡的医疗绿灰 */
-  /* 移除 overflow-x: hidden 以修复 sticky 导航失效及双滚动条问题 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 禁止 Body 滚动 */
 }
 
 /* 背景容器：固定全屏，处理溢出 */
 .bg-container {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
@@ -221,13 +230,14 @@ const onMenuCommand = async (cmd: string) => {
 
 /* 顶部导航容器 */
 .client-navbar {
-  position: sticky;
-  top: 0;
+  /* position: sticky;  不再需要 sticky，因为在 flex column 中自然置顶 */
+  position: relative;
   z-index: 100;
   transition: all 0.3s ease;
   background: transparent;
   border-bottom: 1px solid transparent;
   padding: 10px 0; /* 初始内边距 */
+  flex-shrink: 0; /* 防止被压缩 */
 }
 
 /* 滚动后的导航栏样式 */
@@ -244,6 +254,12 @@ const onMenuCommand = async (cmd: string) => {
 .client-main {
   position: relative;
   z-index: 1;
+  width: 100%;
+  flex: 1; /* 占据剩余空间 */
+  overflow-y: auto; /* 滚动条移至此处 */
+  overflow-x: hidden;
+  min-height: 0; /* 关键：允许 flex 子项小于内容高度 */
+  scroll-behavior: smooth;
 }
 
 /* 三栏：左品牌 / 中导航 / 右用户信息 */

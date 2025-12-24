@@ -109,6 +109,30 @@ export function approveVideoReview(id: string | number, status: 0 | 1 | 2 | 3 | 
 }
 
 /**
+ * 用户端：公开健康视频分页列表
+ * - 后端接口：POST /health-videos/public/page
+ * - 入参：{ pageNum, pageSize, sortField, sortDirection, query }
+ * - 出参：{ total, list, pageNum, pageSize, pages }
+ */
+export function fetchPublicVideosPage(params: {
+  pageNum: number
+  pageSize: number
+  sortField?: string
+  sortDirection?: 'ASC' | 'DESC'
+  query?: Record<string, any>
+}) {
+  return request.post('/health-videos/public/page', params) as Promise<
+    ApiResponse<{
+      total: number
+      list: HealthVideoVO[]
+      pageNum: number
+      pageSize: number
+      pages: number
+    }>
+  >
+}
+
+/**
  * 创建健康视频
  * - 后端接口：POST /health-videos/create
  */

@@ -26,6 +26,8 @@ const routes: RouteRecordRaw[] = [
       { path: '', redirect: '/client/home' },
       { path: 'home', name: 'ClientHome', component: () => import('@/views/ClientSide/Home.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '首页' } },
       { path: 'health', name: 'ClientHealth', component: () => import('@/views/ClientSide/Health.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '健康' } },
+      { path: 'medicine', name: 'MedicineRecommendation', component: () => import('@/views/ClientSide/MedicineRecommendation.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '调理推荐' } },
+      { path: 'medicine/:id', name: 'MedicineDetail', component: () => import('@/views/ClientSide/MedicineDetail.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '药品详情' } },
       { path: 'blog', name: 'ClientBlog', component: () => import('@/views/ClientSide/Blog.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '博客' } },
       { path: 'team', name: 'ClientTeam', component: () => import('@/views/ClientSide/Team.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '团队' } },
       { path: 'share', name: 'ClientShare', component: () => import('@/views/ClientSide/Share.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '分享' } },
