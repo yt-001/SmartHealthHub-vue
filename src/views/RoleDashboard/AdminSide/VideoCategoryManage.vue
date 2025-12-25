@@ -120,7 +120,7 @@ async function fetchPage() {
     const records = data?.records ?? data?.list ?? []
     const totalNum = data?.total ?? data?.totalCount ?? 0
     list.value = records as VideoCategoriesVO[]
-    total.value = totalNum
+    total.value = Number(totalNum as any) || 0
   } catch (e) {
     ElMessage.error('获取分类列表失败')
     list.value = []

@@ -212,7 +212,7 @@ const fetchList = async () => {
     }
     const data = (res as any)?.data
     list.value = (data?.list || []) as UserItem[]
-    total.value = data?.total || 0
+    total.value = Number((data?.total ?? 0) as any) || 0
   } catch (e) {
     console.warn('获取用户列表失败：', e)
     fetchError.value = true

@@ -248,12 +248,16 @@ const fetchList = async () => {
     const payload = buildDoctorPayload(query.value)
 
     const res = await doctorApi.getDoctorList(payload)
-    const data = (res as any)?.data?.list ? (res as any).data : (res as any)
+    // 保持原有解析方式，但确保将 total 转为数值，避免因字符串导致分页不渲染
+    const data: any = (res as any)?.data?.list ? (res as any).data : (res as any)
+    const records: DoctorItem[] = (data?.list || []) as DoctorItem[]
+    const t = data?.total ?? data?.totalCount ?? 0
+    const totalNum = Number(t) || 0
 
     const elapsed = Date.now() - start
     if (elapsed < 1000) await sleep(1000 - elapsed)
-    list.value = (data.list || []) as DoctorItem[]
-    total.value = data.total || 0
+    list.value = records
+    total.value = totalNum
   } catch (e) {
     console.warn('获取医生列表失败：', e)
     fetchError.value = true

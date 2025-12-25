@@ -602,6 +602,73 @@ LOCK TABLES `video_category_relations` WRITE;
 INSERT INTO `video_category_relations` VALUES (20001,1,2001,'2025-12-01 15:16:23'),(20002,1,2002,'2025-12-01 15:16:23'),(20003,2,2003,'2025-12-01 15:16:23'),(20004,3,2001,'2025-12-01 15:16:23'),(20005,4,2004,'2025-12-01 15:16:23'),(20006,5,2005,'2025-12-01 15:16:23'),(20007,6,2006,'2025-12-01 15:16:23'),(20008,7,2007,'2025-12-01 15:16:23'),(20009,8,2001,'2025-12-01 15:16:23'),(20010,9,2003,'2025-12-01 15:16:23'),(20011,10,2008,'2025-12-01 15:16:23'),(20012,12,2002,'2025-12-01 15:16:23'),(20014,15,2001,'2025-12-01 15:16:23'),(20015,16,2005,'2025-12-01 15:16:23'),(20016,18,2006,'2025-12-01 15:16:23'),(20017,20,2007,'2025-12-01 15:16:23'),(20018,21,2003,'2025-12-01 15:16:23'),(20019,22,2008,'2025-12-01 15:16:23'),(20020,23,2001,'2025-12-01 15:16:23'),(20021,24,2002,'2025-12-01 15:16:23'),(1995481000963399682,19,2002,'2025-12-01 21:12:00'),(1995481000963399683,19,2004,'2025-12-01 21:12:00'),(1995481000963399684,19,2003,'2025-12-01 21:12:00'),(1995481030843621378,17,2003,'2025-12-01 21:12:07'),(1995481030843621379,17,2006,'2025-12-01 21:12:07'),(1995481030843621380,17,2007,'2025-12-01 21:12:07'),(1995481030843621381,17,2004,'2025-12-01 21:12:07'),(1995481030843621382,17,2005,'2025-12-01 21:12:07'),(1995487002114859010,14,2004,'2025-12-01 21:35:50');
 /*!40000 ALTER TABLE `video_category_relations` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `medicine_categories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `medicine_categories` (
+  `id` bigint NOT NULL COMMENT '主键，雪花ID',
+  `parent_id` bigint DEFAULT NULL COMMENT '父分类ID（为空表示一级分类）',
+  `name` varchar(64) NOT NULL COMMENT '分类名称',
+  `description` varchar(200) DEFAULT NULL COMMENT '分类描述',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `is_enabled` tinyint NOT NULL DEFAULT '1' COMMENT '是否启用：0 否 1 是',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_medicine_categories_parent_id` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='药品分类表（支持父子层级）';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TABLE IF EXISTS `medicines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `medicines` (
+  `id` bigint NOT NULL COMMENT '主键，雪花ID',
+  `name` varchar(100) NOT NULL COMMENT '药品名称（展示名）',
+  `common_name` varchar(100) DEFAULT NULL COMMENT '通用名称',
+  `brand_name` varchar(100) DEFAULT NULL COMMENT '品牌/商品名',
+  `description` varchar(500) DEFAULT NULL COMMENT '简介摘要（用于卡片文案）',
+  `cover_image_url` varchar(255) DEFAULT NULL COMMENT '封面图片URL',
+  `images` json DEFAULT NULL COMMENT '图片列表JSON数组',
+  `specs` json DEFAULT NULL COMMENT '规格列表JSON数组（如“10包/盒”）',
+  `tags` json DEFAULT NULL COMMENT '标签JSON数组',
+  `recommendation_level` varchar(50) DEFAULT NULL COMMENT '推荐级别文案（如“首选推荐”）',
+  `is_prescription` tinyint NOT NULL DEFAULT '0' COMMENT '是否处方药：0 否（OTC） 1 是',
+  `price` decimal(10,2) NOT NULL COMMENT '现价',
+  `original_price` decimal(10,2) DEFAULT NULL COMMENT '原价',
+  `sales` int NOT NULL DEFAULT '0' COMMENT '月售/销量',
+  `rating` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '好评率百分比（0-100）',
+  `indications` text COMMENT '适应症',
+  `functions` text COMMENT '功能主治',
+  `dosage` text COMMENT '用法用量',
+  `adverse_reactions` text COMMENT '不良反应',
+  `contraindications` text COMMENT '禁忌',
+  `precautions` text COMMENT '注意事项',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态：0 隐藏 1 显示',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除：0 正常 1 已删',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_medicines_name` (`name`),
+  KEY `idx_medicines_status` (`status`),
+  KEY `idx_medicines_is_prescription` (`is_prescription`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='药品信息主表（含客户端详情字段）';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TABLE IF EXISTS `medicine_category_relations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `medicine_category_relations` (
+  `id` bigint NOT NULL COMMENT '主键，雪花ID',
+  `medicine_id` bigint NOT NULL COMMENT '药品ID',
+  `category_id` bigint NOT NULL COMMENT '分类ID',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_medicine_category` (`medicine_id`,`category_id`),
+  KEY `idx_mcr_medicine_id` (`medicine_id`),
+  KEY `idx_mcr_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='药品与分类的关联表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

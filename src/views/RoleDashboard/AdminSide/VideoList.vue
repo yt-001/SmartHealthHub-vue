@@ -177,7 +177,7 @@ const fetchList = async () => {
     const records = data?.records ?? data?.list ?? []
     const totalNum = data?.total ?? data?.totalCount ?? 0
     list.value = records as HealthVideoReviewVO[]
-    total.value = totalNum
+    total.value = Number(totalNum as any) || 0
   } catch (e) {
     console.warn('获取视频列表失败：', e)
     fetchError.value = true

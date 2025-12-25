@@ -156,7 +156,7 @@ const fetchList = async () => {
     const records = (data as any)?.records ?? (data as any)?.list ?? []
     const totalNum = (data as any)?.total ?? (data as any)?.totalCount ?? 0
     list.value = records as DoctorAuthListItem[]
-    total.value = totalNum
+    total.value = Number(totalNum as any) || 0
   } catch (e) {
     console.warn('获取医生认证审核列表失败：', e)
     fetchError.value = true
