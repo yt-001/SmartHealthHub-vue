@@ -55,8 +55,8 @@ const doRefresh = () => {
       '/auth/refresh',
       {},
       {
-        // 使用后端完整地址，确保命中 http://localhost:9000/auth/refresh
-        baseURL: 'http://localhost:9000',
+        // 使用配置的 API 地址，避免硬编码端口导致不一致
+        baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
         withCredentials: true,
         headers: { 'Content-Type': 'application/json;charset=UTF-8' }
       }

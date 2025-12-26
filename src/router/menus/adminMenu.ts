@@ -41,14 +41,12 @@ const adminMenu: MenuItem[] = [
     ],
   },
   {
-    title: "系统字典",
+    title: "药品管理",
     icon: "Collection",
     children: [
-      { title: "药品目录", path: "/portal/admin/drug-catalog", icon: "CollectionTag" },
-      { title: "收费项", path: "/portal/admin/charge-items", icon: "PriceTag" },
-      { title: "诊断编码", path: "/portal/admin/diagnosis-codes", icon: "Document" },
-      { title: "检查项目", path: "/portal/admin/exam-items", icon: "List" },
-      { title: "价格变动审批", path: "/portal/admin/price-change-approval", icon: "CircleCheck" },
+      { title: "药品信息管理", path: "/portal/admin/medicine-manage", icon: "CollectionTag" },
+      { title: "药品分类管理", path: "/portal/admin/medicine-category-manage", icon: "Collection" },
+      { title: "分类关联管理", path: "/portal/admin/medicine-category-relation-manage", icon: "Link" },
     ],
   },
   {
@@ -71,10 +69,7 @@ const adminMenu: MenuItem[] = [
     title: "科室/排班",
     icon: "Calendar",
     children: [
-      { title: "科室维护", path: "/portal/admin/department-maintain", icon: "OfficeBuilding" },
       { title: "医生排班", path: "/portal/schedule", icon: "Calendar" },
-      { title: "节假日排班", path: "/portal/admin/holiday-schedule", icon: "Calendar" },
-      { title: "门诊号源预览", path: "/portal/admin/outpatient-slots-preview", icon: "View" },
     ],
   },
 ];

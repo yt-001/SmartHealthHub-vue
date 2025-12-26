@@ -4,6 +4,7 @@ import * as health from './modules/health'
 import * as doctor from './modules/doctor'
 import * as medicalRecord from './modules/medicalRecord'
 import * as video from './modules/video'
+import * as medicine from './modules/medicine'
 
 export const userApi = {
   ...user
@@ -23,4 +24,8 @@ export const medicalRecordApi = {
 
 export const videoApi = {
   ...video
+}
+
+export const medicineApi = {
+  ...medicine
 }

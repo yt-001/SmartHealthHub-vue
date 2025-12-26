@@ -87,6 +87,11 @@ const routes: RouteRecordRaw[] = [
       { path: 'admin/video-review', component: () => import('@/views/RoleDashboard/AdminSide/VideoReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '审核视频' } },
       { path: 'admin/article-review', component: () => import('@/views/RoleDashboard/AdminSide/ArticleReviewList.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '审核文章' } },
 
+      // 药品管理
+      { path: 'admin/medicine-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品信息管理' } },
+      { path: 'admin/medicine-category-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineCategoryManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品分类管理' } },
+      { path: 'admin/medicine-category-relation-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineCategoryRelationManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '分类关联管理' } },
+
       { path: 'admin/drug-catalog', component: Error404, meta: { roles: ['admin'], title: '药品目录' } },
       { path: 'admin/charge-items', component: Error404, meta: { roles: ['admin'], title: '收费项' } },
       { path: 'admin/diagnosis-codes', component: Error404, meta: { roles: ['admin'], title: '诊断编码' } },
