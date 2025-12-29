@@ -47,6 +47,8 @@ const adminMenu: MenuItem[] = [
       { title: "药品信息管理", path: "/portal/admin/medicine-manage", icon: "CollectionTag" },
       { title: "药品分类管理", path: "/portal/admin/medicine-category-manage", icon: "Collection" },
       { title: "分类关联管理", path: "/portal/admin/medicine-category-relation-manage", icon: "Link" },
+      { title: "药品标签管理", path: "/portal/admin/medicine-tag-manage", icon: "PriceTag" },
+      { title: "推荐级别管理", path: "/portal/admin/medicine-recommendation-level-manage", icon: "Star" },
     ],
   },
   {

@@ -285,7 +285,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { medicineApi } from '@/api'
 import { 
   Bowl, FirstAidKit, Apple, Grid, ArrowRight, Search, Right, Back, Picture,
   ShoppingCart, Timer, Warning, Document, Delete
@@ -319,9 +318,90 @@ interface BigCategory {
   subCategories: SubCategory[]
 }
 
+// --- 模拟数据 ---
+const mockData: BigCategory[] = [
+  {
+    id: 1,
+    name: '中药调理',
+    icon: 'tcm',
+    subCategories: [
+      {
+        id: 101,
+        name: '气血亏虚',
+        desc: '面色苍白，头晕眼花，心悸失眠',
+        color: '#e6f7ff',
+        medicines: [
+          { id: 1001, name: '八珍颗粒', image: '', desc: '补气益血。用于气血两虚，面色萎黄，食欲不振。', price: 45.0, tags: ['补气', '养血'], recommendationLevel: '经典方剂' },
+          { id: 1002, name: '归脾丸', image: '', desc: '益气健脾，养血安神。用于心脾两虚，气短心悸。', price: 32.5, tags: ['安神', '健脾'] }
+        ]
+      },
+      {
+        id: 102,
+        name: '脾胃虚弱',
+        desc: '食少便溏，脘腹胀闷，倦怠乏力',
+        color: '#fff7e6',
+        medicines: [
+          { id: 1003, name: '香砂六君丸', image: '', desc: '益气健脾，和胃。用于脾虚气滞，消化不良。', price: 28.0, tags: ['健脾', '和胃'], recommendationLevel: '家庭常备' }
+        ]
+      },
+      {
+        id: 103,
+        name: '清热解毒',
+        desc: '咽喉肿痛，口舌生疮，牙龈肿痛',
+        color: '#f6ffed',
+        medicines: []
+      }
+    ]
+  },
+  {
+    id: 2,
+    name: '西药推荐',
+    icon: 'western',
+    subCategories: [
+      {
+        id: 201,
+        name: '感冒流感',
+        desc: '发热头痛，鼻塞流涕，咳嗽咽痛',
+        color: '#e6fffb',
+        medicines: [
+          { id: 2001, name: '复方氨酚烷胺片', image: '', desc: '适用于缓解普通感冒及流行性感冒引起的发热、头痛等症状。', price: 15.0, tags: ['解热镇痛', '感冒'], recommendationLevel: '快速起效' }
+        ]
+      },
+      {
+        id: 202,
+        name: '维生素补充',
+        desc: '日常膳食补充，增强免疫力',
+        color: '#fff0f6',
+        medicines: []
+      }
+    ]
+  },
+  {
+    id: 3,
+    name: '营养保健',
+    icon: 'supplement',
+    subCategories: [
+      {
+        id: 301,
+        name: '增强免疫',
+        desc: '调节机体免疫功能，提高抵抗力',
+        color: '#fff2e8',
+        medicines: []
+      },
+      {
+        id: 302,
+        name: '骨骼健康',
+        desc: '增加骨密度，预防骨质疏松',
+        color: '#f9f0ff',
+        medicines: []
+      }
+    ]
+  }
+]
+
 // --- 状态管理 ---
-const categories = ref<BigCategory[]>([])
-const currentCategoryId = ref<number | null>(null)
+const categories = ref<BigCategory[]>(mockData)
+const currentCategoryId = ref(mockData[0].id)
 const currentSubCategory = ref<SubCategory | null>(null)
 const currentMedicine = ref<Medicine | null>(null)
 const searchQuery = ref('')
@@ -341,28 +421,6 @@ const btnStart = ref({ right: 0, bottom: 0 })
 const currentCategory = computed(() => 
   categories.value.find(c => c.id === currentCategoryId.value)
 )
-
-const loading = ref(false)
-
-const loadRecommendationTree = async () => {
-  loading.value = true
-  try {
-    const res = await medicineApi.fetchMedicineRecommendationTree()
-    const raw: any = res as any
-    const items: any[] = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
-    categories.value = (items || []) as BigCategory[]
-    if (categories.value.length > 0) {
-      currentCategoryId.value = categories.value[0].id
-    } else {
-      currentCategoryId.value = null
-    }
-  } catch (error) {
-    console.error('加载调理推荐数据失败', error)
-    ElMessage.error('加载调理推荐数据失败')
-  } finally {
-    loading.value = false
-  }
-}
 
 // --- 方法 ---
 const selectCategory = (id: number) => {
@@ -452,15 +510,6 @@ const toggleCart = () => {
     showCartList.value = !showCartList.value
   }
 }
-
-onMounted(() => {
-  loadRecommendationTree()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousemove', handleMouseMove)
-  document.removeEventListener('mouseup', handleMouseUp)
-})
 </script>
 
 <style scoped>

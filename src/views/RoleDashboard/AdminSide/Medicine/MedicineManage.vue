@@ -296,11 +296,17 @@ const fetchDataDebounced = useDebounce(fetchData, 600)
 // 加载大类选项
 const loadBigCategories = async () => {
   try {
-    const res = await medicineApi.fetchMedicineBigCategories()
+    // parentId: null 表示获取一级分类（大类）
+    const res = await medicineApi.fetchMedicineCategoriesPage({
+      pageNum: 1,
+      pageSize: 1000,
+      query: { parentId: null, isEnabled: 1 }
+    })
     const raw: any = res as any
-    const items: any[] = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
-
-    bigCategoryOptions.value = (items || []).map((item: any) => ({
+    const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
+    const items: any[] = Array.isArray(data?.list) ? data.list : []
+    
+    bigCategoryOptions.value = items.map(item => ({
       label: item.name,
       value: item.id
     }))
@@ -312,11 +318,16 @@ const loadBigCategories = async () => {
 // 加载小类选项
 const loadSmallCategories = async (parentId: number) => {
   try {
-    const res = await medicineApi.fetchMedicineSubCategories(parentId)
+    const res = await medicineApi.fetchMedicineCategoriesPage({
+      pageNum: 1,
+      pageSize: 1000,
+      query: { parentId, isEnabled: 1 }
+    })
     const raw: any = res as any
-    const items: any[] = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
-
-    smallCategoryOptions.value = (items || []).map((item: any) => ({
+    const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
+    const items: any[] = Array.isArray(data?.list) ? data.list : []
+    
+    smallCategoryOptions.value = items.map(item => ({
       label: item.name,
       value: item.id
     }))

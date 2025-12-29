@@ -5,32 +5,15 @@
         <el-form-item label="药品ID">
           <el-input v-model.number="query.medicineId" placeholder="请输入药品ID" clearable @keyup.enter="onSearch" />
         </el-form-item>
-        <el-form-item label="大类">
+        <el-form-item label="分类">
           <el-select
-            v-model="query.bigCategoryId"
-            placeholder="请选择大类"
+            v-model="query.categoryId"
+            placeholder="请选择分类"
             clearable
-            style="width: 200px"
-            @change="onBigCategoryChange"
-          >
-            <el-option
-              v-for="item in bigCategoryOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="小类">
-          <el-select
-            v-model="query.smallCategoryId"
-            placeholder="请选择小类"
-            clearable
-            :disabled="!query.bigCategoryId"
             style="width: 200px"
           >
             <el-option
-              v-for="item in smallCategoryOptions"
+              v-for="item in categoryOptions"
               :key="item.value"
               :label="item.label"
               :value="item.value"
@@ -53,10 +36,10 @@
       style="width: 100%; margin-top: 20px"
     >
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="medicineId" label="药品ID" min-width="120" />
-      <el-table-column prop="medicineName" label="药品名称" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="categoryId" label="分类ID" min-width="120" />
-      <el-table-column prop="categoryName" label="分类名称" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="medicineId" label="药品ID" width="100" />
+      <el-table-column prop="medicineName" label="药品名称" min-width="180" />
+      <el-table-column prop="categoryId" label="分类ID" width="100" />
+      <el-table-column prop="categoryName" label="分类名称" min-width="180" />
       <el-table-column prop="createdAt" label="创建时间" width="180" />
       <el-table-column label="操作" width="120" fixed="right">
         <template #default="{ row }">
@@ -85,11 +68,35 @@
       destroy-on-close
     >
       <el-form ref="formRef" :model="formData" :rules="rules" label-width="80px">
-        <el-form-item label="药品ID" prop="medicineId">
-          <el-input v-model.number="formData.medicineId" placeholder="请输入药品ID" />
+        <el-form-item label="药品" prop="medicineId">
+          <el-select
+            v-model="formData.medicineId"
+            placeholder="请选择药品"
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in medicineOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
-        <el-form-item label="分类ID" prop="categoryId">
-          <el-input v-model.number="formData.categoryId" placeholder="请输入分类ID" />
+        <el-form-item label="分类" prop="categoryId">
+          <el-select
+            v-model="formData.categoryId"
+            placeholder="请选择分类"
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in categoryOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -107,18 +114,14 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { medicineApi } from '@/api'
-import type {
-  MedicineCategoryRelationVO,
-  MedicineCategoryRelationCreateDTO
-} from '@/api/types/medicineTypes'
+import type { MedicineCategoryRelationVO, MedicineCategoryRelationCreateDTO } from '@/api/types/medicineTypes'
 
 const list = ref<MedicineCategoryRelationVO[]>([])
 const loading = ref(false)
 const total = ref(0)
 
-// 分类下拉选项
-const bigCategoryOptions = ref<{ label: string; value: number }[]>([])
-const smallCategoryOptions = ref<{ label: string; value: number }[]>([])
+const categoryOptions = ref<{ label: string; value: number }[]>([])
+const medicineOptions = ref<{ label: string; value: number }[]>([])
 
 // 延时工具
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -136,8 +139,7 @@ const query = reactive({
   pageNum: 1,
   pageSize: 10,
   medicineId: undefined as number | undefined,
-  bigCategoryId: undefined as number | undefined,
-  smallCategoryId: undefined as number | undefined
+  categoryId: undefined as number | undefined
 })
 
 const dialogVisible = ref(false)
@@ -150,23 +152,20 @@ const formData = reactive<MedicineCategoryRelationCreateDTO>({
 })
 
 const rules = reactive<FormRules>({
-  medicineId: [{ required: true, message: '请输入药品ID', trigger: 'blur' }],
-  categoryId: [{ required: true, message: '请输入分类ID', trigger: 'blur' }]
+  medicineId: [{ required: true, message: '请选择药品', trigger: 'change' }],
+  categoryId: [{ required: true, message: '请选择分类', trigger: 'change' }]
 })
 
 const fetchData = async () => {
   loading.value = true
   const start = Date.now()
   try {
-    const hasSmall = !!query.smallCategoryId
-    const hasBig = !!query.bigCategoryId
     const res = await medicineApi.fetchMedicineCategoryRelationsPage({
       pageNum: query.pageNum,
       pageSize: query.pageSize,
       query: {
         medicineId: query.medicineId,
-        ...(hasSmall ? { categoryId: query.smallCategoryId as number } : {}),
-        ...(!hasSmall && hasBig ? { parentCategoryId: query.bigCategoryId as number } : {})
+        categoryId: query.categoryId
       }
     })
     
@@ -194,34 +193,41 @@ const fetchData = async () => {
 // 防抖查询 (0.6s)
 const fetchDataDebounced = useDebounce(fetchData, 600)
 
-// 加载大类下拉选项
-const loadBigCategories = async () => {
+const loadMedicineOptions = async () => {
   try {
-    const res = await medicineApi.fetchMedicineBigCategories()
-    const raw: any = res as any
-    const items: any[] = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
-    bigCategoryOptions.value = (items || []).map((item: any) => ({
-      label: item.name,
+    const res = await medicineApi.fetchMedicinesPage({
+      pageNum: 1,
+      pageSize: 100,
+      query: {}
+    })
+    const data: any = (res as any)?.data ?? res
+    const items: any[] = data?.list ?? []
+    medicineOptions.value = items.map((item) => ({
+      label: `${item.name}（ID: ${item.id}）`,
       value: Number(item.id)
     }))
   } catch (error) {
-    console.error('加载大类列表失败', error)
+    console.error('加载药品列表失败', error)
   }
 }
 
-// 加载小类下拉选项
-const loadSmallCategories = async (parentId: number) => {
+const loadCategoryOptions = async () => {
   try {
-    const res = await medicineApi.fetchMedicineSubCategories(parentId)
-    const raw: any = res as any
-    const items: any[] = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
-    smallCategoryOptions.value = (items || []).map((item: any) => ({
+    const res = await medicineApi.fetchMedicineCategoriesPage({
+      pageNum: 1,
+      pageSize: 100,
+      query: {
+        isEnabled: 1
+      }
+    })
+    const data: any = (res as any)?.data ?? res
+    const items: any[] = data?.list ?? []
+    categoryOptions.value = items.map((item) => ({
       label: item.name,
       value: Number(item.id)
     }))
   } catch (error) {
-    console.error('加载小类列表失败', error)
-    smallCategoryOptions.value = []
+    console.error('加载分类列表失败', error)
   }
 }
 
@@ -232,8 +238,7 @@ const onSearch = () => {
 
 const onReset = () => {
   query.medicineId = undefined
-  query.bigCategoryId = undefined
-  query.smallCategoryId = undefined
+  query.categoryId = undefined
   onSearch()
 }
 
@@ -246,15 +251,6 @@ const onPageSizeChange = (size: number) => {
   query.pageSize = size
   query.pageNum = 1
   fetchDataDebounced()
-}
-
-// 监听大类变化，联动小类
-const onBigCategoryChange = (val: number | undefined) => {
-  query.smallCategoryId = undefined
-  smallCategoryOptions.value = []
-  if (val) {
-    loadSmallCategories(val)
-  }
 }
 
 const onAdd = () => {
@@ -301,7 +297,8 @@ const onDelete = (row: MedicineCategoryRelationVO) => {
 }
 
 onMounted(() => {
-  loadBigCategories()
+  loadCategoryOptions()
+  loadMedicineOptions()
   fetchData()
 })
 </script>

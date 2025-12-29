@@ -22,12 +22,21 @@ import type {
   MedicineCategoryRelationPageResult,
   MedicineCategoryRelationCreateDTO,
   MedicineCategoryRelationUpdateDTO,
-  MedicineRecommendationCategory
+  MedicineTagVO,
+  MedicineTagQuery,
+  MedicineTagPageResult,
+  MedicineTagCreateDTO,
+  MedicineTagUpdateDTO,
+  MedicineRecommendationLevelVO,
+  MedicineRecommendationLevelQuery,
+  MedicineRecommendationLevelPageResult,
+  MedicineRecommendationLevelCreateDTO,
+  MedicineRecommendationLevelUpdateDTO
 } from '@/api/types/medicineTypes'
 
 /**
- * 将 BasePageQuery<T> 转换为后端 PageParam 兼容的请求体结构
- * - 与后端 PageParam<T> 字段保持一致：pageNum/pageSize/sortField/sortDirection/query
+ * 将 BasePageQuery<T> 展开为后端 PageParam 兼容的请求体
+ * @param params 分页查询入参（包含 pageNum/pageSize/sort/query）
  */
 const buildPostPageBody = <T>(params: BasePageQuery<T>): Record<string, any> => {
   const { pageNum, pageSize, sortField, sortDirection, query } = params
@@ -36,7 +45,7 @@ const buildPostPageBody = <T>(params: BasePageQuery<T>): Record<string, any> => 
     pageSize,
     ...(sortField ? { sortField } : {}),
     ...(sortDirection ? { sortDirection } : {}),
-    ...(query ? { query } : {})
+    ...(query || {})
   }
 }
 
@@ -78,18 +87,6 @@ export const fetchMedicineCategoriesPage = (
   return request.post('/medicine-categories/page', body) as Promise<
     ApiResponse<PageResult<MedicineCategoryVO> | MedicineCategoryPageResult>
   >
-}
-
-/** 获取药品大类列表（GET /medicine-categories/big-list） */
-export const fetchMedicineBigCategories = (): Promise<ApiResponse<MedicineCategoryVO[]>> => {
-  return request.get('/medicine-categories/big-list') as Promise<ApiResponse<MedicineCategoryVO[]>>
-}
-
-/** 根据大类ID获取小类列表（GET /medicine-categories/sub-list/{parentId}） */
-export const fetchMedicineSubCategories = (
-  parentId: number | string
-): Promise<ApiResponse<MedicineCategoryVO[]>> => {
-  return request.get(`/medicine-categories/sub-list/${parentId}`) as Promise<ApiResponse<MedicineCategoryVO[]>>
 }
 
 /** 根据ID查询药品分类详情（GET /medicine-categories/{id}） */
@@ -152,12 +149,93 @@ export const deleteMedicineCategoryRelation = (id: number | string): Promise<Api
   return request.delete(`/medicine-category-relations/${id}`) as Promise<ApiResponse<boolean>>
 }
 
-/** 获取前台调理推荐分类树（GET /medicines/recommendation-tree） */
-export const fetchMedicineRecommendationTree = (): Promise<
-  ApiResponse<MedicineRecommendationCategory[]>
-> => {
-  return request.get('/medicines/recommendation-tree') as Promise<
-    ApiResponse<MedicineRecommendationCategory[]>
+/** 分页查询药品标签（POST /medicine-tags/page） */
+export const fetchMedicineTagsPage = (
+  params: BasePageQuery<MedicineTagQuery>
+): Promise<ApiResponse<PageResult<MedicineTagVO> | MedicineTagPageResult>> => {
+  const body = buildPostPageBody<MedicineTagQuery>(params)
+  return request.post('/medicine-tags/page', body) as Promise<
+    ApiResponse<PageResult<MedicineTagVO> | MedicineTagPageResult>
   >
+}
+
+/** 根据ID查询药品标签详情（GET /medicine-tags/{id}） */
+export const fetchMedicineTagDetail = (
+  id: number | string
+): Promise<ApiResponse<MedicineTagVO>> => {
+  return request.get(`/medicine-tags/${id}`) as Promise<ApiResponse<MedicineTagVO>>
+}
+
+/** 新增药品标签（POST /medicine-tags/create） */
+export const createMedicineTag = (
+  payload: MedicineTagCreateDTO
+): Promise<ApiResponse<number>> => {
+  return request.post('/medicine-tags/create', payload) as Promise<ApiResponse<number>>
+}
+
+/** 更新药品标签（PUT /medicine-tags/update） */
+export const updateMedicineTag = (
+  payload: MedicineTagUpdateDTO
+): Promise<ApiResponse<boolean>> => {
+  return request.put('/medicine-tags/update', payload) as Promise<ApiResponse<boolean>>
+}
+
+/** 删除药品标签（DELETE /medicine-tags/delete/{id}） */
+export const deleteMedicineTag = (id: number | string): Promise<ApiResponse<boolean>> => {
+  return request.delete(`/medicine-tags/delete/${id}`) as Promise<ApiResponse<boolean>>
+}
+
+/** 分页查询药品推荐级别（POST /medicine-recommendation-levels/page） */
+export const fetchMedicineRecommendationLevelsPage = (
+  params: BasePageQuery<MedicineRecommendationLevelQuery>
+): Promise<
+  ApiResponse<
+    PageResult<MedicineRecommendationLevelVO> | MedicineRecommendationLevelPageResult
+  >
+> => {
+  const body = buildPostPageBody<MedicineRecommendationLevelQuery>(params)
+  return request.post('/medicine-recommendation-levels/page', body) as Promise<
+    ApiResponse<
+      PageResult<MedicineRecommendationLevelVO> | MedicineRecommendationLevelPageResult
+    >
+  >
+}
+
+/** 根据ID查询药品推荐级别详情（GET /medicine-recommendation-levels/{id}） */
+export const fetchMedicineRecommendationLevelDetail = (
+  id: number | string
+): Promise<ApiResponse<MedicineRecommendationLevelVO>> => {
+  return request.get(
+    `/medicine-recommendation-levels/${id}`
+  ) as Promise<ApiResponse<MedicineRecommendationLevelVO>>
+}
+
+/** 新增药品推荐级别（POST /medicine-recommendation-levels/create） */
+export const createMedicineRecommendationLevel = (
+  payload: MedicineRecommendationLevelCreateDTO
+): Promise<ApiResponse<number>> => {
+  return request.post(
+    '/medicine-recommendation-levels/create',
+    payload
+  ) as Promise<ApiResponse<number>>
+}
+
+/** 更新药品推荐级别（PUT /medicine-recommendation-levels/update） */
+export const updateMedicineRecommendationLevel = (
+  payload: MedicineRecommendationLevelUpdateDTO
+): Promise<ApiResponse<boolean>> => {
+  return request.put(
+    '/medicine-recommendation-levels/update',
+    payload
+  ) as Promise<ApiResponse<boolean>>
+}
+
+/** 删除药品推荐级别（DELETE /medicine-recommendation-levels/delete/{id}） */
+export const deleteMedicineRecommendationLevel = (
+  id: number | string
+): Promise<ApiResponse<boolean>> => {
+  return request.delete(
+    `/medicine-recommendation-levels/delete/${id}`
+  ) as Promise<ApiResponse<boolean>>
 }
 

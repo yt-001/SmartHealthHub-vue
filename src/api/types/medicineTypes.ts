@@ -170,8 +170,6 @@ export interface MedicineCategoryRelationVO {
 export interface MedicineCategoryRelationQuery {
   medicineId?: number
   categoryId?: number
-  /** 大类ID（父分类ID） */
-  parentCategoryId?: number
 }
 
 /** 药品分类关联分页查询入参 */
@@ -191,30 +189,77 @@ export interface MedicineCategoryRelationUpdateDTO extends Partial<MedicineCateg
   id: number
 }
 
-/** 前台调理推荐-药品结构 */
-export interface MedicineRecommendationMedicine {
+/** 药品标签 VO（与 MedicineTagsVo 对齐） */
+export interface MedicineTagVO {
   id: number
   name: string
-  image?: string | null
-  desc?: string | null
-  price?: number
-  tags?: string[]
-  recommendationLevel?: string | null
+  description?: string | null
+  sortOrder: number
+  isEnabled: number
+  createdAt: string
+  updatedAt: string
 }
 
-/** 前台调理推荐-小类结构 */
-export interface MedicineRecommendationSubCategory {
-  id: number
-  name: string
-  desc?: string | null
-  color?: string | null
-  medicines: MedicineRecommendationMedicine[]
+/** 药品标签查询条件 */
+export interface MedicineTagQuery {
+  name?: string
+  isEnabled?: number
 }
 
-/** 前台调理推荐-大类结构 */
-export interface MedicineRecommendationCategory {
-  id: number
+/** 药品标签分页查询入参 */
+export type MedicineTagPageQuery = BasePageQuery<MedicineTagQuery>
+
+/** 药品标签分页结果 */
+export type MedicineTagPageResult = PageResult<MedicineTagVO>
+
+/** 新增药品标签 DTO */
+export interface MedicineTagCreateDTO {
   name: string
-  icon?: string | null
-  subCategories: MedicineRecommendationSubCategory[]
+  description?: string
+  sortOrder?: number
+  isEnabled?: number
+}
+
+/** 更新药品标签 DTO */
+export interface MedicineTagUpdateDTO extends Partial<MedicineTagCreateDTO> {
+  id: number
+}
+
+/** 药品推荐级别 VO（与 MedicineRecommendationLevelsVo 对齐） */
+export interface MedicineRecommendationLevelVO {
+  id: number
+  code: string
+  name: string
+  description?: string | null
+  sortOrder: number
+  isEnabled: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** 药品推荐级别查询条件 */
+export interface MedicineRecommendationLevelQuery {
+  name?: string
+  isEnabled?: number
+}
+
+/** 药品推荐级别分页查询入参 */
+export type MedicineRecommendationLevelPageQuery = BasePageQuery<MedicineRecommendationLevelQuery>
+
+/** 药品推荐级别分页结果 */
+export type MedicineRecommendationLevelPageResult = PageResult<MedicineRecommendationLevelVO>
+
+/** 新增药品推荐级别 DTO */
+export interface MedicineRecommendationLevelCreateDTO {
+  code: string
+  name: string
+  description?: string
+  sortOrder?: number
+  isEnabled?: number
+}
+
+/** 更新药品推荐级别 DTO */
+export interface MedicineRecommendationLevelUpdateDTO
+  extends Partial<MedicineRecommendationLevelCreateDTO> {
+  id: number
 }
