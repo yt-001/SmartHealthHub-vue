@@ -170,6 +170,7 @@ export interface MedicineCategoryRelationVO {
 export interface MedicineCategoryRelationQuery {
   medicineId?: number
   categoryId?: number
+  parentCategoryId?: number
 }
 
 /** 药品分类关联分页查询入参 */

@@ -45,7 +45,7 @@ const buildPostPageBody = <T>(params: BasePageQuery<T>): Record<string, any> => 
     pageSize,
     ...(sortField ? { sortField } : {}),
     ...(sortDirection ? { sortDirection } : {}),
-    ...(query || {})
+    ...(query ? { query } : {})
   }
 }
 
@@ -86,6 +86,20 @@ export const fetchMedicineCategoriesPage = (
   const body = buildPostPageBody<MedicineCategoryQuery>(params)
   return request.post('/medicine-categories/page', body) as Promise<
     ApiResponse<PageResult<MedicineCategoryVO> | MedicineCategoryPageResult>
+  >
+}
+
+/** 获取药品大类列表（GET /medicine-categories/big-list） */
+export const fetchMedicineBigCategories = (): Promise<ApiResponse<MedicineCategoryVO[]>> => {
+  return request.get('/medicine-categories/big-list') as Promise<ApiResponse<MedicineCategoryVO[]>>
+}
+
+/** 根据大类ID获取小类列表（GET /medicine-categories/sub-list/{parentId}） */
+export const fetchMedicineSubCategories = (
+  parentId: number | string
+): Promise<ApiResponse<MedicineCategoryVO[]>> => {
+  return request.get(`/medicine-categories/sub-list/${parentId}`) as Promise<
+    ApiResponse<MedicineCategoryVO[]>
   >
 }
 

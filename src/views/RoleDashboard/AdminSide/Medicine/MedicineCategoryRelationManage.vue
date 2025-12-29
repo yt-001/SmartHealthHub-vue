@@ -5,15 +5,31 @@
         <el-form-item label="药品ID">
           <el-input v-model.number="query.medicineId" placeholder="请输入药品ID" clearable @keyup.enter="onSearch" />
         </el-form-item>
-        <el-form-item label="分类">
+        <el-form-item label="大类">
           <el-select
-            v-model="query.categoryId"
-            placeholder="请选择分类"
+            v-model="query.bigCategoryId"
+            placeholder="请选择大类"
             clearable
-            style="width: 200px"
+            style="width: 160px"
           >
             <el-option
-              v-for="item in categoryOptions"
+              v-for="item in bigCategoryOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="小类">
+          <el-select
+            v-model="query.smallCategoryId"
+            placeholder="请选择小类"
+            clearable
+            :disabled="!query.bigCategoryId"
+            style="width: 160px"
+          >
+            <el-option
+              v-for="item in smallCategoryOptions"
               :key="item.value"
               :label="item.label"
               :value="item.value"
@@ -69,12 +85,7 @@
     >
       <el-form ref="formRef" :model="formData" :rules="rules" label-width="80px">
         <el-form-item label="药品" prop="medicineId">
-          <el-select
-            v-model="formData.medicineId"
-            placeholder="请选择药品"
-            filterable
-            style="width: 100%"
-          >
+          <el-select v-model="formData.medicineId" placeholder="请选择药品" filterable style="width: 100%">
             <el-option
               v-for="item in medicineOptions"
               :key="item.value"
@@ -83,15 +94,31 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="分类" prop="categoryId">
+        <el-form-item label="大类">
           <el-select
-            v-model="formData.categoryId"
-            placeholder="请选择分类"
+            v-model="dialogBigCategoryId"
+            placeholder="请选择大类"
             filterable
             style="width: 100%"
           >
             <el-option
-              v-for="item in categoryOptions"
+              v-for="item in bigCategoryOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="小类" prop="categoryId">
+          <el-select
+            v-model="formData.categoryId"
+            placeholder="请选择小类"
+            filterable
+            :disabled="!dialogBigCategoryId"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in dialogSmallCategoryOptions"
               :key="item.value"
               :label="item.label"
               :value="item.value"
@@ -110,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { medicineApi } from '@/api'
@@ -120,7 +147,10 @@ const list = ref<MedicineCategoryRelationVO[]>([])
 const loading = ref(false)
 const total = ref(0)
 
-const categoryOptions = ref<{ label: string; value: number }[]>([])
+const bigCategoryOptions = ref<{ label: string; value: number }[]>([])
+const smallCategoryOptions = ref<{ label: string; value: number }[]>([])
+const dialogBigCategoryId = ref<number | undefined>(undefined)
+const dialogSmallCategoryOptions = ref<{ label: string; value: number }[]>([])
 const medicineOptions = ref<{ label: string; value: number }[]>([])
 
 // 延时工具
@@ -139,7 +169,8 @@ const query = reactive({
   pageNum: 1,
   pageSize: 10,
   medicineId: undefined as number | undefined,
-  categoryId: undefined as number | undefined
+  bigCategoryId: undefined as number | undefined,
+  smallCategoryId: undefined as number | undefined
 })
 
 const dialogVisible = ref(false)
@@ -160,12 +191,15 @@ const fetchData = async () => {
   loading.value = true
   const start = Date.now()
   try {
+    const hasSmall = !!query.smallCategoryId
+    const hasBig = !!query.bigCategoryId
     const res = await medicineApi.fetchMedicineCategoryRelationsPage({
       pageNum: query.pageNum,
       pageSize: query.pageSize,
       query: {
         medicineId: query.medicineId,
-        categoryId: query.categoryId
+        ...(hasSmall ? { categoryId: query.smallCategoryId as number } : {}),
+        ...(!hasSmall && hasBig ? { parentCategoryId: query.bigCategoryId as number } : {})
       }
     })
     
@@ -193,6 +227,9 @@ const fetchData = async () => {
 // 防抖查询 (0.6s)
 const fetchDataDebounced = useDebounce(fetchData, 600)
 
+/**
+ * 加载药品下拉选项
+ */
 const loadMedicineOptions = async () => {
   try {
     const res = await medicineApi.fetchMedicinesPage({
@@ -211,25 +248,74 @@ const loadMedicineOptions = async () => {
   }
 }
 
-const loadCategoryOptions = async () => {
+const loadBigCategories = async () => {
   try {
-    const res = await medicineApi.fetchMedicineCategoriesPage({
-      pageNum: 1,
-      pageSize: 100,
-      query: {
-        isEnabled: 1
-      }
-    })
-    const data: any = (res as any)?.data ?? res
-    const items: any[] = data?.list ?? []
-    categoryOptions.value = items.map((item) => ({
+    const res = await medicineApi.fetchMedicineBigCategories()
+    const raw: any = res as any
+    const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
+    const items: any[] = Array.isArray(data) ? data : []
+    bigCategoryOptions.value = items.map((item) => ({
       label: item.name,
       value: Number(item.id)
     }))
   } catch (error) {
-    console.error('加载分类列表失败', error)
+    console.error('加载大类列表失败', error)
   }
 }
+
+const loadSmallCategories = async (parentId: number) => {
+  try {
+    const res = await medicineApi.fetchMedicineSubCategories(parentId)
+    const raw: any = res as any
+    const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
+    const items: any[] = Array.isArray(data) ? data : []
+    smallCategoryOptions.value = items.map((item) => ({
+      label: item.name,
+      value: Number(item.id)
+    }))
+  } catch (error) {
+    console.error('加载小类列表失败', error)
+    smallCategoryOptions.value = []
+  }
+}
+
+const loadDialogSmallCategories = async (parentId: number) => {
+  try {
+    const res = await medicineApi.fetchMedicineSubCategories(parentId)
+    const raw: any = res as any
+    const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
+    const items: any[] = Array.isArray(data) ? data : []
+    dialogSmallCategoryOptions.value = items.map((item) => ({
+      label: item.name,
+      value: Number(item.id)
+    }))
+  } catch (error) {
+    console.error('加载小类列表失败', error)
+    dialogSmallCategoryOptions.value = []
+  }
+}
+
+watch(
+  () => query.bigCategoryId,
+  (newVal) => {
+    query.smallCategoryId = undefined
+    smallCategoryOptions.value = []
+    if (newVal) {
+      loadSmallCategories(newVal)
+    }
+  }
+)
+
+watch(
+  () => dialogBigCategoryId.value,
+  (newVal) => {
+    formData.categoryId = undefined as any
+    dialogSmallCategoryOptions.value = []
+    if (newVal) {
+      loadDialogSmallCategories(newVal as number)
+    }
+  }
+)
 
 const onSearch = () => {
   query.pageNum = 1
@@ -238,7 +324,8 @@ const onSearch = () => {
 
 const onReset = () => {
   query.medicineId = undefined
-  query.categoryId = undefined
+  query.bigCategoryId = undefined
+  query.smallCategoryId = undefined
   onSearch()
 }
 
@@ -256,6 +343,8 @@ const onPageSizeChange = (size: number) => {
 const onAdd = () => {
   formData.medicineId = undefined as any
   formData.categoryId = undefined as any
+  dialogBigCategoryId.value = undefined
+  dialogSmallCategoryOptions.value = []
   dialogVisible.value = true
 }
 
@@ -297,7 +386,7 @@ const onDelete = (row: MedicineCategoryRelationVO) => {
 }
 
 onMounted(() => {
-  loadCategoryOptions()
+  loadBigCategories()
   loadMedicineOptions()
   fetchData()
 })

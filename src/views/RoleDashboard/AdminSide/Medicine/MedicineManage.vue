@@ -129,7 +129,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑药品' : '新增药品'"
-      width="600px"
+      width="650px"
       destroy-on-close
     >
       <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px">
@@ -140,10 +140,22 @@
           <el-input v-model="formData.commonName" placeholder="请输入通用名称" />
         </el-form-item>
         <el-form-item label="现价" prop="price">
-          <el-input-number v-model="formData.price" :min="0" :precision="2" :step="0.1" style="width: 100%" />
+          <el-input-number
+            v-model="formData.price"
+            :min="0"
+            :precision="2"
+            :step="0.1"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="原价" prop="originalPrice">
-          <el-input-number v-model="formData.originalPrice" :min="0" :precision="2" :step="0.1" style="width: 100%" />
+          <el-input-number
+            v-model="formData.originalPrice"
+            :min="0"
+            :precision="2"
+            :step="0.1"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="封面图URL" prop="coverImageUrl">
           <el-input v-model="formData.coverImageUrl" placeholder="请输入图片URL" />
@@ -160,8 +172,46 @@
             <el-radio :label="0">隐藏</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="推荐级别">
+          <el-select
+            v-model="formData.recommendationLevelName"
+            placeholder="请选择推荐级别"
+            clearable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in recommendationLevelOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-select
+            v-model="formData.tagsList"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请选择或输入标签"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in tagOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="简介" prop="description">
-          <el-input v-model="formData.description" type="textarea" :rows="3" placeholder="请输入简介" />
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入简介"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -179,7 +229,11 @@ import { ref, reactive, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { medicineApi } from '@/api'
-import type { MedicineVO, MedicineCreateDTO, MedicineUpdateDTO } from '@/api/types/medicineTypes'
+import type {
+  MedicineVO,
+  MedicineCreateDTO,
+  MedicineUpdateDTO
+} from '@/api/types/medicineTypes'
 
 // 列表数据
 const list = ref<MedicineVO[]>([])
@@ -189,6 +243,9 @@ const total = ref(0)
 // 分类下拉选项
 const bigCategoryOptions = ref<{ label: string; value: number }[]>([])
 const smallCategoryOptions = ref<{ label: string; value: number }[]>([])
+// 标签、推荐级别下拉选项
+const tagOptions = ref<{ label: string; value: string }[]>([])
+const recommendationLevelOptions = ref<{ label: string; value: string }[]>([])
 
 const queryCardRef = ref<HTMLElement | null>(null)
 const pagerRef = ref<HTMLElement | null>(null)
@@ -232,7 +289,15 @@ const submitting = ref(false)
 const formRef = ref<FormInstance>()
 
 // 表单数据
-const formData = reactive<Partial<MedicineCreateDTO & { id?: string }>>({
+const formData = reactive<
+  Partial<
+    MedicineCreateDTO & {
+      id?: string
+      tagsList?: string[]
+      recommendationLevelName?: string
+    }
+  >
+>({
   name: '',
   commonName: '',
   price: 0,
@@ -240,7 +305,9 @@ const formData = reactive<Partial<MedicineCreateDTO & { id?: string }>>({
   coverImageUrl: '',
   isPrescription: 0,
   status: 1,
-  description: ''
+  description: '',
+  tagsList: [],
+  recommendationLevelName: ''
 })
 
 // 表单校验规则
@@ -293,18 +360,12 @@ const fetchData = async () => {
 // 防抖查询 (0.6s)
 const fetchDataDebounced = useDebounce(fetchData, 600)
 
-// 加载大类选项
 const loadBigCategories = async () => {
   try {
-    // parentId: null 表示获取一级分类（大类）
-    const res = await medicineApi.fetchMedicineCategoriesPage({
-      pageNum: 1,
-      pageSize: 1000,
-      query: { parentId: null, isEnabled: 1 }
-    })
+    const res = await medicineApi.fetchMedicineBigCategories()
     const raw: any = res as any
     const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
-    const items: any[] = Array.isArray(data?.list) ? data.list : []
+    const items: any[] = Array.isArray(data) ? data : []
     
     bigCategoryOptions.value = items.map(item => ({
       label: item.name,
@@ -315,17 +376,12 @@ const loadBigCategories = async () => {
   }
 }
 
-// 加载小类选项
 const loadSmallCategories = async (parentId: number) => {
   try {
-    const res = await medicineApi.fetchMedicineCategoriesPage({
-      pageNum: 1,
-      pageSize: 1000,
-      query: { parentId, isEnabled: 1 }
-    })
+    const res = await medicineApi.fetchMedicineSubCategories(parentId)
     const raw: any = res as any
     const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
-    const items: any[] = Array.isArray(data?.list) ? data.list : []
+    const items: any[] = Array.isArray(data) ? data : []
     
     smallCategoryOptions.value = items.map(item => ({
       label: item.name,
@@ -334,6 +390,52 @@ const loadSmallCategories = async (parentId: number) => {
   } catch (error) {
     console.error('加载小类列表失败', error)
     smallCategoryOptions.value = []
+  }
+}
+
+// 加载标签选项（启用状态）
+const loadTagOptions = async () => {
+  try {
+    const res = await medicineApi.fetchMedicineTagsPage({
+      pageNum: 1,
+      pageSize: 1000,
+      query: {
+        isEnabled: 1
+      }
+    })
+    const raw: any = res as any
+    const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
+    const items: any[] = Array.isArray(data?.list) ? data.list : []
+    tagOptions.value = items.map(item => ({
+      label: item.name,
+      value: item.name
+    }))
+  } catch (error) {
+    console.error('加载标签列表失败', error)
+    tagOptions.value = []
+  }
+}
+
+// 加载推荐级别选项（启用状态）
+const loadRecommendationLevelOptions = async () => {
+  try {
+    const res = await medicineApi.fetchMedicineRecommendationLevelsPage({
+      pageNum: 1,
+      pageSize: 1000,
+      query: {
+        isEnabled: 1
+      }
+    })
+    const raw: any = res as any
+    const data: any = typeof raw?.code !== 'undefined' && raw?.data ? raw.data : raw
+    const items: any[] = Array.isArray(data?.list) ? data.list : []
+    recommendationLevelOptions.value = items.map(item => ({
+      label: item.name,
+      value: item.name
+    }))
+  } catch (error) {
+    console.error('加载推荐级别列表失败', error)
+    recommendationLevelOptions.value = []
   }
 }
 
@@ -377,6 +479,9 @@ const onPageChange = (val: number) => {
 const onAdd = () => {
   isEdit.value = false
   resetForm()
+  // 打开弹窗前确保下拉数据为最新
+  loadTagOptions()
+  loadRecommendationLevelOptions()
   dialogVisible.value = true
 }
 
@@ -393,8 +498,26 @@ const onEdit = (row: MedicineVO) => {
     coverImageUrl: row.coverImageUrl,
     isPrescription: row.isPrescription,
     status: row.status,
-    description: row.description
+    description: row.description,
+    recommendationLevelName: row.recommendationLevel || ''
   })
+  // 解析已有标签JSON字符串
+  if (row.tags) {
+    try {
+      const parsed = JSON.parse(row.tags)
+      formData.tagsList = Array.isArray(parsed)
+        ? parsed.filter((t: any) => typeof t === 'string')
+        : []
+    } catch (error) {
+      console.error('解析标签JSON失败', error)
+      formData.tagsList = []
+    }
+  } else {
+    formData.tagsList = []
+  }
+  // 编辑时也刷新下拉数据
+  loadTagOptions()
+  loadRecommendationLevelOptions()
   dialogVisible.value = true
 }
 
@@ -409,6 +532,9 @@ const resetForm = () => {
   formData.isPrescription = 0
   formData.status = 1
   formData.description = ''
+   // 重置标签和推荐级别
+  formData.tagsList = []
+  formData.recommendationLevelName = ''
   if (formRef.value) {
     formRef.value.clearValidate()
   }
@@ -421,11 +547,42 @@ const onSubmit = async () => {
     if (valid) {
       submitting.value = true
       try {
+        const payload: any = {
+          name: formData.name,
+          commonName: formData.commonName,
+          brandName: (formData as any).brandName,
+          description: formData.description,
+          coverImageUrl: formData.coverImageUrl,
+          images: (formData as any).images,
+          specs: (formData as any).specs,
+          // tags 字段：将标签数组序列化为 JSON 字符串
+          tags: JSON.stringify(
+            (formData.tagsList || []).filter(t => typeof t === 'string' && t.trim().length > 0)
+          ),
+          // 推荐级别字段：使用名称作为文案
+          recommendationLevel: formData.recommendationLevelName || undefined,
+          isPrescription: formData.isPrescription,
+          price: formData.price!,
+          originalPrice: formData.originalPrice,
+          sales: (formData as any).sales,
+          rating: (formData as any).rating,
+          indications: (formData as any).indications,
+          functions: (formData as any).functions,
+          dosage: (formData as any).dosage,
+          adverseReactions: (formData as any).adverseReactions,
+          contraindications: (formData as any).contraindications,
+          precautions: (formData as any).precautions,
+          status: formData.status,
+          isDeleted: (formData as any).isDeleted
+        }
         if (isEdit.value && formData.id) {
-          await medicineApi.updateMedicine(formData as MedicineUpdateDTO)
+          await medicineApi.updateMedicine({
+            ...(payload as MedicineUpdateDTO),
+            id: formData.id
+          } as MedicineUpdateDTO)
           ElMessage.success('更新成功')
         } else {
-          await medicineApi.createMedicine(formData as MedicineCreateDTO)
+          await medicineApi.createMedicine(payload as MedicineCreateDTO)
           ElMessage.success('创建成功')
         }
         dialogVisible.value = false
@@ -460,6 +617,9 @@ const onDelete = (row: MedicineVO) => {
 
 onMounted(() => {
   loadBigCategories()
+  // 初始化标签与推荐级别下拉数据
+  loadTagOptions()
+  loadRecommendationLevelOptions()
   fetchData()
   nextTick(() => {
     recalcTableHeight()
