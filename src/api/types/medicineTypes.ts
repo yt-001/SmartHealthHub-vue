@@ -190,3 +190,31 @@ export interface MedicineCategoryRelationCreateDTO {
 export interface MedicineCategoryRelationUpdateDTO extends Partial<MedicineCategoryRelationCreateDTO> {
   id: number
 }
+
+/** 前台调理推荐-药品结构 */
+export interface MedicineRecommendationMedicine {
+  id: number
+  name: string
+  image?: string | null
+  desc?: string | null
+  price?: number
+  tags?: string[]
+  recommendationLevel?: string | null
+}
+
+/** 前台调理推荐-小类结构 */
+export interface MedicineRecommendationSubCategory {
+  id: number
+  name: string
+  desc?: string | null
+  color?: string | null
+  medicines: MedicineRecommendationMedicine[]
+}
+
+/** 前台调理推荐-大类结构 */
+export interface MedicineRecommendationCategory {
+  id: number
+  name: string
+  icon?: string | null
+  subCategories: MedicineRecommendationSubCategory[]
+}

@@ -21,7 +21,8 @@ import type {
   MedicineCategoryRelationQuery,
   MedicineCategoryRelationPageResult,
   MedicineCategoryRelationCreateDTO,
-  MedicineCategoryRelationUpdateDTO
+  MedicineCategoryRelationUpdateDTO,
+  MedicineRecommendationCategory
 } from '@/api/types/medicineTypes'
 
 /**
@@ -149,5 +150,14 @@ export const updateMedicineCategoryRelation = (
 /** 删除药品与分类的关联信息（DELETE /medicine-category-relations/{id}） */
 export const deleteMedicineCategoryRelation = (id: number | string): Promise<ApiResponse<boolean>> => {
   return request.delete(`/medicine-category-relations/${id}`) as Promise<ApiResponse<boolean>>
+}
+
+/** 获取前台调理推荐分类树（GET /medicines/recommendation-tree） */
+export const fetchMedicineRecommendationTree = (): Promise<
+  ApiResponse<MedicineRecommendationCategory[]>
+> => {
+  return request.get('/medicines/recommendation-tree') as Promise<
+    ApiResponse<MedicineRecommendationCategory[]>
+  >
 }
 
