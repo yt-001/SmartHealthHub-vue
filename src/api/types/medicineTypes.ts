@@ -113,15 +113,43 @@ export interface MedicineUpdateDTO extends Partial<MedicineCreateDTO> {
   id: string | number
 }
 
-/** 药品分类 VO（与 MedicineCategoriesVo 对齐） */
-export interface MedicineCategoryVO {
-  id: number
-  parentId?: number | null
+/** 推荐系统相关 VO 定义 */
+
+export interface MedicineRecommendationMedicineVO {
+  id: string
   name: string
-  description?: string | null
+  image: string
+  desc: string
+  price: number
+  tags: string[]
+  recommendationLevel?: string
+}
+
+export interface MedicineRecommendationSubCategoryVO {
+  id: string
+  name: string
+  desc: string
+  color: string
+  medicines: MedicineRecommendationMedicineVO[]
+}
+
+export interface MedicineRecommendationCategoryVO {
+  id: string
+  name: string
+  icon: string
+  subCategories: MedicineRecommendationSubCategoryVO[]
+}
+
+/** 药品分类 VO */
+export interface MedicineCategoryVO {
+  id: string
+  name: string
+  description: string
+  parentId: string
+  level: number
   sortOrder: number
-  /** 是否启用：0 否 1 是 */
-  isEnabled: number
+  iconUrl: string
+  status: number
   createdAt: string
   updatedAt: string
 }

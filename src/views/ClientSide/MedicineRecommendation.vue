@@ -230,7 +230,7 @@
                         <el-button round size="large" class="cart-btn" @click="addToCart(currentMedicine!)">
                           <el-icon><ShoppingCart /></el-icon> 加入清单
                         </el-button>
-                        <el-button type="primary" round size="large" class="buy-btn">
+                        <el-button type="primary" round size="large" class="buy-btn" @click="handleBuyNow(currentMedicine!)">
                           <el-icon><Timer /></el-icon> 预约取货
                         </el-button>
                       </div>
@@ -274,139 +274,145 @@
           </li>
         </ul>
         <div class="cart-footer">
-          <el-button type="primary" size="small" style="width: 100%">去结算</el-button>
+          <el-button type="primary" size="small" style="width: 100%" @click="handleCheckout">去结算</el-button>
         </div>
       </div>
     </transition>
+
+    <!-- 订单确认弹窗 -->
+    <el-dialog v-model="checkoutVisible" title="确认订单" width="600px" append-to-body>
+      <div class="checkout-container">
+        <el-table :data="checkoutList" style="width: 100%" max-height="300">
+          <el-table-column prop="name" label="药品名称" />
+          <el-table-column prop="price" label="单价" width="100">
+            <template #default="{ row }">¥{{ row.price }}</template>
+          </el-table-column>
+          <el-table-column label="数量" width="80">
+            <template #default>1</template>
+          </el-table-column>
+        </el-table>
+        
+        <div class="mt-4" style="margin-top: 20px;">
+          <h4 class="mb-2" style="margin-bottom: 10px;">选择取药地点</h4>
+          <el-select v-model="selectedPharmacyId" placeholder="请选择取药地点" style="width: 100%">
+            <el-option
+              v-for="item in pharmacyList"
+              :key="item.id"
+              :label="item.name + ' (' + item.address + ')'"
+              :value="item.id"
+            />
+          </el-select>
+        </div>
+
+        <div class="total-bar mt-6 text-right" style="margin-top: 24px; text-align: right;">
+          <span class="text-gray-500">共 {{ checkoutList.length }} 件商品，总计：</span>
+          <span class="text-xl text-red-500 font-bold" style="font-size: 20px; color: #f56c6c; font-weight: bold;">¥{{ totalAmount }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="checkoutVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submittingOrder" @click="submitOrder">立即支付</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 模拟支付弹窗 -->
+    <el-dialog v-model="paymentVisible" title="收银台" width="400px" center append-to-body :close-on-click-modal="false">
+      <div class="payment-container flex flex-col items-center" style="display: flex; flex-direction: column; align-items: center;">
+        <p class="mb-4 text-gray-600" style="margin-bottom: 16px; color: #666;">请扫描下方二维码完成支付</p>
+        <div class="qr-code-box p-4 border rounded bg-white" style="padding: 16px; border: 1px solid #eee; border-radius: 8px;">
+          <img :src="qrCodeUrl" alt="Payment QR Code" style="width: 200px; height: 200px;" />
+        </div>
+        <div class="amount-display mt-4" style="margin-top: 16px;">
+          <span class="text-2xl font-bold text-red-600" style="font-size: 24px; font-weight: bold; color: #f56c6c;">¥{{ totalAmount }}</span>
+        </div>
+        <div class="payment-methods mt-4 flex gap-4" style="margin-top: 16px; display: flex; gap: 16px;">
+          <el-tag type="success"><el-icon><Check /></el-icon> 微信支付</el-tag>
+          <el-tag type="primary"><el-icon><Check /></el-icon> 支付宝</el-tag>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="paymentVisible = false">取消支付</el-button>
+        <el-button type="primary" :loading="paying" @click="confirmPayment">我已完成支付</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import { getPharmacyLocations } from '@/api/modules/pharmacy'
+import { createOrder, payOrder } from '@/api/modules/order'
+import { fetchRecommendationTree } from '@/api/modules/medicine'
+import type { PharmacyLocation } from '@/api/types/pharmacyTypes'
+import type { 
+  MedicineRecommendationCategoryVO, 
+  MedicineRecommendationSubCategoryVO, 
+  MedicineRecommendationMedicineVO 
+} from '@/api/types/medicineTypes'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Bowl, FirstAidKit, Apple, Grid, ArrowRight, Search, Right, Back, Picture,
-  ShoppingCart, Timer, Warning, Document, Delete
+  ShoppingCart, Timer, Warning, Document, Delete, Money, Location, Check
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const userStore = useUserStore()
 
-// --- 类型定义 ---
-interface Medicine {
-  id: number
-  name: string
-  image: string
-  desc: string
-  price: number
-  tags: string[]
-  recommendationLevel?: string // e.g., "首选推荐", "搭配建议"
-}
+// --- 支付相关状态 ---
+const checkoutVisible = ref(false)
+const paymentVisible = ref(false)
+const pharmacyList = ref<PharmacyLocation[]>([])
+const selectedPharmacyId = ref<string>('')
+const createdOrderIds = ref<string[]>([])
+const qrCodeUrl = ref('https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MockPayment') // 模拟二维码
+const paying = ref(false)
+const submittingOrder = ref(false)
 
-interface SubCategory {
-  id: number
-  name: string
-  desc: string
-  color: string
-  medicines: Medicine[]
-}
+const isDirectBuy = ref(false)
+const directBuyItem = ref<MedicineRecommendationMedicineVO | null>(null)
 
-interface BigCategory {
-  id: number
-  name: string
-  icon: string
-  subCategories: SubCategory[]
-}
+// 购物车列表
+const cartList = ref<MedicineRecommendationMedicineVO[]>([])
+const showCartList = ref(false)
 
-// --- 模拟数据 ---
-const mockData: BigCategory[] = [
-  {
-    id: 1,
-    name: '中药调理',
-    icon: 'tcm',
-    subCategories: [
-      {
-        id: 101,
-        name: '气血亏虚',
-        desc: '面色苍白，头晕眼花，心悸失眠',
-        color: '#e6f7ff',
-        medicines: [
-          { id: 1001, name: '八珍颗粒', image: '', desc: '补气益血。用于气血两虚，面色萎黄，食欲不振。', price: 45.0, tags: ['补气', '养血'], recommendationLevel: '经典方剂' },
-          { id: 1002, name: '归脾丸', image: '', desc: '益气健脾，养血安神。用于心脾两虚，气短心悸。', price: 32.5, tags: ['安神', '健脾'] }
-        ]
-      },
-      {
-        id: 102,
-        name: '脾胃虚弱',
-        desc: '食少便溏，脘腹胀闷，倦怠乏力',
-        color: '#fff7e6',
-        medicines: [
-          { id: 1003, name: '香砂六君丸', image: '', desc: '益气健脾，和胃。用于脾虚气滞，消化不良。', price: 28.0, tags: ['健脾', '和胃'], recommendationLevel: '家庭常备' }
-        ]
-      },
-      {
-        id: 103,
-        name: '清热解毒',
-        desc: '咽喉肿痛，口舌生疮，牙龈肿痛',
-        color: '#f6ffed',
-        medicines: []
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: '西药推荐',
-    icon: 'western',
-    subCategories: [
-      {
-        id: 201,
-        name: '感冒流感',
-        desc: '发热头痛，鼻塞流涕，咳嗽咽痛',
-        color: '#e6fffb',
-        medicines: [
-          { id: 2001, name: '复方氨酚烷胺片', image: '', desc: '适用于缓解普通感冒及流行性感冒引起的发热、头痛等症状。', price: 15.0, tags: ['解热镇痛', '感冒'], recommendationLevel: '快速起效' }
-        ]
-      },
-      {
-        id: 202,
-        name: '维生素补充',
-        desc: '日常膳食补充，增强免疫力',
-        color: '#fff0f6',
-        medicines: []
-      }
-    ]
-  },
-  {
-    id: 3,
-    name: '营养保健',
-    icon: 'supplement',
-    subCategories: [
-      {
-        id: 301,
-        name: '增强免疫',
-        desc: '调节机体免疫功能，提高抵抗力',
-        color: '#fff2e8',
-        medicines: []
-      },
-      {
-        id: 302,
-        name: '骨骼健康',
-        desc: '增加骨密度，预防骨质疏松',
-        color: '#f9f0ff',
-        medicines: []
-      }
-    ]
-  }
-]
+// 计算用于结算的列表（购物车或直接购买单品）
+const checkoutList = computed(() => {
+    // 如果是直接购买模式，且 directBuyItem 有值，则返回包含该商品的数组
+    if (isDirectBuy.value && directBuyItem.value) {
+      return [directBuyItem.value]
+    }
+    // 否则返回购物车列表
+    return cartList.value
+  })
+
+// 计算总金额（基于 checkoutList）
+const totalAmount = computed(() => {
+  return checkoutList.value.reduce((sum, item) => sum + item.price, 0).toFixed(2)
+})
 
 // --- 状态管理 ---
-const categories = ref<BigCategory[]>(mockData)
-const currentCategoryId = ref(mockData[0].id)
-const currentSubCategory = ref<SubCategory | null>(null)
-const currentMedicine = ref<Medicine | null>(null)
+const categories = ref<MedicineRecommendationCategoryVO[]>([])
+const currentCategoryId = ref<string>('')
+const currentSubCategory = ref<MedicineRecommendationSubCategoryVO | null>(null)
+const currentMedicine = ref<MedicineRecommendationMedicineVO | null>(null)
 const searchQuery = ref('')
-const cartList = ref<Medicine[]>([])
-const showCartList = ref(false)
+
+onMounted(async () => {
+  try {
+    const res = await fetchRecommendationTree()
+    if (res.code === 200 && res.data) {
+      categories.value = res.data
+      if (categories.value.length > 0) {
+        currentCategoryId.value = categories.value[0].id
+      }
+    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('获取推荐分类失败')
+  }
+})
 
 // 悬浮按钮位置状态
 const floatBtnStyle = ref({
@@ -423,13 +429,13 @@ const currentCategory = computed(() =>
 )
 
 // --- 方法 ---
-const selectCategory = (id: number) => {
+const selectCategory = (id: string) => {
   currentCategoryId.value = id
   currentSubCategory.value = null // 切换大类时重置小类视图
   currentMedicine.value = null
 }
 
-const selectSubCategory = (sub: SubCategory) => {
+const selectSubCategory = (sub: MedicineRecommendationSubCategoryVO) => {
   currentSubCategory.value = sub
   currentMedicine.value = null
 }
@@ -442,11 +448,11 @@ const resetToSubCategories = () => {
   }
 }
 
-const goToDetail = (med: Medicine) => {
+const goToDetail = (med: MedicineRecommendationMedicineVO) => {
   currentMedicine.value = med
 }
 
-const addToCart = (med: Medicine) => {
+const addToCart = (med: MedicineRecommendationMedicineVO) => {
   if (cartList.value.some(item => item.id === med.id)) {
     ElMessage.warning('该药品已在清单中')
     return
@@ -455,10 +461,129 @@ const addToCart = (med: Medicine) => {
   ElMessage.success('已加入清单')
 }
 
-const removeFromCart = (id: number) => {
+const removeFromCart = (id: string) => {
   cartList.value = cartList.value.filter(item => item.id !== id)
   if (cartList.value.length === 0) {
     showCartList.value = false
+  }
+}
+
+const handleCheckout = async () => {
+  if (cartList.value.length === 0) return
+  isDirectBuy.value = false
+  directBuyItem.value = null
+  await openCheckoutDialog()
+}
+
+const handleBuyNow = async (medicine: MedicineRecommendationMedicineVO) => {
+  if (!userStore.userInfo?.id) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  isDirectBuy.value = true
+  directBuyItem.value = medicine
+  await openCheckoutDialog()
+}
+
+const openCheckoutDialog = async () => {
+  try {
+    const res = await getPharmacyLocations()
+    if (res.code === 200) {
+      pharmacyList.value = res.data || []
+    }
+    selectedPharmacyId.value = ''
+    checkoutVisible.value = true
+    showCartList.value = false
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('获取取药地点失败')
+  }
+}
+
+const submitOrder = async () => {
+  if (!selectedPharmacyId.value) {
+    ElMessage.warning('请选择取药地点')
+    return
+  }
+  
+  if (!userStore.userInfo?.id) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  submittingOrder.value = true
+  createdOrderIds.value = []
+  
+  try {
+    // 使用 checkoutList 进行下单
+    const listToOrder = checkoutList.value
+    const promises = listToOrder.map(item => {
+      return createOrder({
+        userId: Number(userStore.userInfo!.id),
+        medicineId: Number(item.id),
+        quantity: 1, // 默认为1
+        pharmacyLocationId: Number(selectedPharmacyId.value)
+      })
+    })
+
+    const results = await Promise.all(promises)
+    let successCount = 0
+    for (const res of results) {
+      if (res.code === 200 && res.data) {
+        createdOrderIds.value.push(res.data.id)
+        successCount++
+      }
+    }
+
+    if (successCount === listToOrder.length) {
+      checkoutVisible.value = false
+      paymentVisible.value = true
+    } else {
+      ElMessage.error('部分订单创建失败，请重试')
+    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('创建订单失败')
+  } finally {
+    submittingOrder.value = false
+  }
+}
+
+const confirmPayment = async () => {
+  paying.value = true
+  try {
+    // 批量支付
+    const promises = createdOrderIds.value.map(orderId => {
+      return payOrder({
+        orderId: orderId,
+        paymentMethod: 'WeChat' // 默认微信
+      })
+    })
+
+    const results = await Promise.all(promises)
+    const allSuccess = results.every(res => res.code === 200 && res.data === true)
+
+    if (allSuccess) {
+      ElMessage.success('支付成功！')
+      paymentVisible.value = false
+      
+      // 仅当非直接购买（即购物车结算）时清空购物车
+      if (!isDirectBuy.value) {
+        cartList.value = []
+      }
+      
+      // 重置状态
+      isDirectBuy.value = false
+      directBuyItem.value = null
+      createdOrderIds.value = []
+    } else {
+      ElMessage.error('支付失败，请重试')
+    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('支付系统异常')
+  } finally {
+    paying.value = false
   }
 }
 

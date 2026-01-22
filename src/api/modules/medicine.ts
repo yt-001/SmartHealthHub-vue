@@ -31,7 +31,8 @@ import type {
   MedicineRecommendationLevelQuery,
   MedicineRecommendationLevelPageResult,
   MedicineRecommendationLevelCreateDTO,
-  MedicineRecommendationLevelUpdateDTO
+  MedicineRecommendationLevelUpdateDTO,
+  MedicineRecommendationCategoryVO
 } from '@/api/types/medicineTypes'
 
 /**
@@ -251,5 +252,10 @@ export const deleteMedicineRecommendationLevel = (
   return request.delete(
     `/medicine-recommendation-levels/delete/${id}`
   ) as Promise<ApiResponse<boolean>>
+}
+
+/** 获取前台调理推荐分类树（GET /medicines/recommendation-tree） */
+export const fetchRecommendationTree = (): Promise<ApiResponse<MedicineRecommendationCategoryVO[]>> => {
+  return request.get('/medicines/recommendation-tree') as Promise<ApiResponse<MedicineRecommendationCategoryVO[]>>
 }
 
