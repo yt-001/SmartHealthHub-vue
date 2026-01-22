@@ -10,6 +10,6 @@ export const payOrder = (data: PayOrderDTO): Promise<ApiResponse<boolean>> => {
   return request.post('/medicine-orders/pay', data) as Promise<ApiResponse<boolean>>
 }
 
-export const getUserOrders = (userId: string): Promise<ApiResponse<MedicineOrder[]>> => {
-  return request.get(`/medicine-orders/list/${userId}`) as Promise<ApiResponse<MedicineOrder[]>>
+export const getUserOrders = (userId: string | number): Promise<ApiResponse<MedicineOrder[]>> => {
+  return request.get(`/medicine-orders/user/${userId}`) as Promise<ApiResponse<MedicineOrder[]>>
 }

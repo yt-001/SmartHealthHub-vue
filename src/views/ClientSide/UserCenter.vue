@@ -33,11 +33,15 @@
             </el-menu-item>
             <el-menu-item index="records">
               <el-icon><Document /></el-icon>
-              <span>我的病例</span>
+              <span>健康档案</span>
             </el-menu-item>
             <el-menu-item index="appointments">
               <el-icon><Calendar /></el-icon>
               <span>我的预约</span>
+            </el-menu-item>
+            <el-menu-item index="orders">
+              <el-icon><FirstAidKit /></el-icon>
+              <span>我的药品</span>
             </el-menu-item>
             <el-menu-item index="settings">
               <el-icon><Setting /></el-icon>
@@ -185,7 +189,7 @@
 
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, reactive } from 'vue'
-import { UserFilled, Document, Setting, Calendar, UploadFilled } from '@element-plus/icons-vue'
+import { UserFilled, Document, Setting, Calendar, UploadFilled, FirstAidKit } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import { createAppointment } from '@/api/modules/appointment'
@@ -196,10 +200,11 @@ import ScheduleCalendar from '../RoleDashboard/ScheduleCalendar.vue'
 const ProfileView = defineAsyncComponent({ loader: () => import('../ClientSide/UserCenterParts/ProfileView.vue'), suspensible: false })
 const MedicalRecordsList = defineAsyncComponent({ loader: () => import('../ClientSide/MedicalRecordsList.vue'), suspensible: false })
 const MyAppointmentsView = defineAsyncComponent({ loader: () => import('../ClientSide/UserCenterParts/MyAppointmentsView.vue'), suspensible: false })
+const MyOrdersView = defineAsyncComponent({ loader: () => import('../ClientSide/UserCenterParts/MyOrdersView.vue'), suspensible: false })
 const SettingsView = defineAsyncComponent({ loader: () => import('../ClientSide/UserCenterParts/SettingsView.vue'), suspensible: false })
 
 const store = useUserStore()
-const activeKey = ref<'profile' | 'records' | 'appointments' | 'settings'>('profile')
+const activeKey = ref<'profile' | 'records' | 'appointments' | 'orders' | 'settings'>('profile')
 
 /** 获取昵称（带兜底） */
 const nickname = computed(() => (store.userInfo?.realName || store.userInfo?.username || '未登录'))
@@ -323,6 +328,7 @@ const currentView = computed(() => {
   if (activeKey.value === 'profile') return ProfileView
   if (activeKey.value === 'records') return MedicalRecordsList
   if (activeKey.value === 'appointments') return MyAppointmentsView
+  if (activeKey.value === 'orders') return MyOrdersView
   return SettingsView
 })
 </script>

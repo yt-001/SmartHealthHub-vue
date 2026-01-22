@@ -59,3 +59,11 @@ export interface CreateMedicalRecordDTO {
 export const createMedicalRecord = (data: CreateMedicalRecordDTO): Promise<ApiResponse<any>> => {
   return request.post('/medicalRecords/create', data) as Promise<ApiResponse<any>>
 }
+
+/**
+ * 根据ID获取病例详情
+ * @param id 病例ID
+ */
+export const getMedicalRecordDetail = (id: string | number): Promise<ApiResponse<any>> => {
+  return request.get(`/medicalRecords/${id}`) as Promise<ApiResponse<any>>
+}

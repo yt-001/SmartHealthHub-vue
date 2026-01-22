@@ -28,7 +28,26 @@ export const getPatientById = (id: string | number): Promise<ApiResponse<Patient
   return request.get(`/admin/patients/${id}`) as Promise<ApiResponse<PatientItem>>
 }
 
+/**
+ * 根据用户ID获取患者档案信息
+ * @param userId 用户ID
+ */
+export const getPatientProfileByUserId = (userId: string | number): Promise<ApiResponse<PatientAuthenticationDTO>> => {
+  return request.get(`/user/profiles/user/${userId}`) as Promise<ApiResponse<PatientAuthenticationDTO>>
+}
+
+/**
+ * 保存或更新患者档案信息
+ * @param userId 用户ID
+ * @param data 档案数据
+ */
+export const savePatientProfile = (userId: string | number, data: Partial<PatientAuthenticationDTO>): Promise<ApiResponse<string>> => {
+  return request.post(`/user/profiles/user/${userId}`, data) as Promise<ApiResponse<string>>
+}
+
 export const patientApi = {
   getPatientList,
-  getPatientById
+  getPatientById,
+  getPatientProfileByUserId,
+  savePatientProfile
 }

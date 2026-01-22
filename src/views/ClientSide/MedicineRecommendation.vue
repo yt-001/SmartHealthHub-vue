@@ -287,8 +287,10 @@
           <el-table-column prop="price" label="单价" width="100">
             <template #default="{ row }">¥{{ row.price }}</template>
           </el-table-column>
-          <el-table-column label="数量" width="80">
-            <template #default>1</template>
+          <el-table-column label="数量" width="160">
+            <template #default="{ row }">
+              <el-input-number v-model="row.quantity" :min="1" :max="99" size="small" style="width: 120px;" />
+            </template>
           </el-table-column>
         </el-table>
         
@@ -360,6 +362,10 @@ import {
 const router = useRouter()
 const userStore = useUserStore()
 
+interface CartItem extends MedicineRecommendationMedicineVO {
+  quantity: number
+}
+
 // --- 支付相关状态 ---
 const checkoutVisible = ref(false)
 const paymentVisible = ref(false)
@@ -371,10 +377,10 @@ const paying = ref(false)
 const submittingOrder = ref(false)
 
 const isDirectBuy = ref(false)
-const directBuyItem = ref<MedicineRecommendationMedicineVO | null>(null)
+const directBuyItem = ref<CartItem | null>(null)
 
 // 购物车列表
-const cartList = ref<MedicineRecommendationMedicineVO[]>([])
+const cartList = ref<CartItem[]>([])
 const showCartList = ref(false)
 
 // 计算用于结算的列表（购物车或直接购买单品）
@@ -389,7 +395,7 @@ const checkoutList = computed(() => {
 
 // 计算总金额（基于 checkoutList）
 const totalAmount = computed(() => {
-  return checkoutList.value.reduce((sum, item) => sum + item.price, 0).toFixed(2)
+  return checkoutList.value.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
 })
 
 // --- 状态管理 ---
@@ -453,11 +459,13 @@ const goToDetail = (med: MedicineRecommendationMedicineVO) => {
 }
 
 const addToCart = (med: MedicineRecommendationMedicineVO) => {
-  if (cartList.value.some(item => item.id === med.id)) {
-    ElMessage.warning('该药品已在清单中')
+  const existing = cartList.value.find(item => item.id === med.id)
+  if (existing) {
+    existing.quantity++
+    ElMessage.success('已增加数量')
     return
   }
-  cartList.value.push(med)
+  cartList.value.push({ ...med, quantity: 1 })
   ElMessage.success('已加入清单')
 }
 
@@ -478,10 +486,11 @@ const handleCheckout = async () => {
 const handleBuyNow = async (medicine: MedicineRecommendationMedicineVO) => {
   if (!userStore.userInfo?.id) {
     ElMessage.warning('请先登录')
+    router.push('/login')
     return
   }
   isDirectBuy.value = true
-  directBuyItem.value = medicine
+  directBuyItem.value = { ...medicine, quantity: 1 }
   await openCheckoutDialog()
 }
 
@@ -521,7 +530,7 @@ const submitOrder = async () => {
       return createOrder({
         userId: Number(userStore.userInfo!.id),
         medicineId: Number(item.id),
-        quantity: 1, // 默认为1
+        quantity: item.quantity,
         pharmacyLocationId: Number(selectedPharmacyId.value)
       })
     })

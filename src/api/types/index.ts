@@ -39,6 +39,7 @@ export interface BasePageQuery<T = any> {
 
 /** 统一响应结构（与后端约定：code/msg/data） */
 export interface ApiResponse<T = any> {
+  message: string
   code: number
   /** 后端返回消息字段为 msg，保持一致 */
   msg: string

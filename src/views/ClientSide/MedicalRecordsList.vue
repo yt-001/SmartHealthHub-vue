@@ -1,112 +1,109 @@
 <template>
-  <div class="records-container">
-    <!-- 筛选头部 -->
-    <div class="filter-card">
-      <div class="left-panel">
-        <h3 class="page-title">我的病例</h3>
-        <span class="subtitle">共 {{ total }} 条就诊记录</span>
-      </div>
-      <div class="right-actions">
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          :shortcuts="shortcuts"
-          class="filter-item date-picker"
-          @change="onDateChange"
-        />
-        <el-select 
-          v-model="status" 
-          placeholder="就诊状态" 
-          clearable 
-          class="filter-item status-select" 
-          @change="onFilterChange"
-        >
-          <el-option :value="0" label="治疗中" />
-          <el-option :value="1" label="已完成" />
-          <el-option :value="2" label="已归档" />
-        </el-select>
-        <el-button class="refresh-btn" :icon="Refresh" circle @click="fetchList" title="刷新列表" />
-      </div>
-    </div>
-
-    <!-- 列表区域 -->
-    <div class="list-content" v-loading="loading" element-loading-text="加载病例数据...">
-      <el-table
-        :data="list"
-        style="width: 100%"
-        :header-cell-style="{ background: '#f8fafc', color: '#475569', fontWeight: '600' }"
-        :row-class-name="tableRowClassName"
-        @row-click="openCase"
-        class="custom-table"
-      >
-        <el-table-column prop="id" label="病例号" width="120" fixed="left">
-          <template #default="{ row }">
-            <span class="record-id">#{{ row.id }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="诊断信息" min-width="200">
-          <template #default="{ row }">
-            <div class="diagnosis-info">
-              <div class="main-text">{{ row.diagnosis || '暂无诊断' }}</div>
-              <div class="sub-text">
-                <span class="label">主治医生：</span>
-                {{ row.doctorName || '未分配' }}
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="就诊时间" width="180">
-          <template #default="{ row }">
-            <div class="time-info">
-              <div class="date">{{ row.visitDate ? row.visitDate.split(' ')[0] : '-' }}</div>
-              <div class="time">{{ row.visitDate ? row.visitDate.split(' ')[1] || '' : '' }}</div>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" effect="plain" round size="small">
-              {{ statusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="操作" width="100" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" class="action-btn" @click.stop="openCase(row)">
-              查看详情
-            </el-button>
-          </template>
-        </el-table-column>
-        
-        <template #empty>
-          <el-empty description="暂无就诊记录" :image-size="120" />
+  <div class="health-records-container">
+    <!-- 顶部仪表盘 -->
+    <div class="dashboard-grid">
+      <!-- 健康档案卡片 -->
+      <el-card class="dashboard-card profile-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span><el-icon><User /></el-icon> 基础健康信息</span>
+            <el-button link type="primary" @click="openEditProfile">编辑</el-button>
+          </div>
         </template>
-      </el-table>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="血型">
+            <el-tag size="small" :type="getBloodTypeTag(healthProfile?.bloodType)">
+              {{ healthProfile?.bloodType || '未填写' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="过敏史">
+            {{ healthProfile?.allergyHistory || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="慢性病史" :span="2">
+            {{ healthProfile?.chronicDisease || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="当前症状" :span="2">
+            {{ healthProfile?.currentSymptoms || '暂无记录' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="当前治疗" :span="2">
+            {{ healthProfile?.currentPlan || '暂无记录' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="医嘱建议" :span="2">
+            {{ healthProfile?.nextStep || '暂无记录' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="居住地址" :span="2">
+            {{ healthProfile?.address || '未填写' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="紧急联系人">
+            {{ healthProfile?.emergencyName || '未设置' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="联系电话">
+            {{ healthProfile?.emergencyPhone || '-' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-card>
 
-      <!-- 分页 -->
-      <div class="pagination-bar" v-if="total > 0">
-        <el-pagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-          background
-          @size-change="onPageSizeChange"
-          @current-change="onPageChange"
-        />
+      <!-- 健康数据统计图表 -->
+      <el-card class="dashboard-card chart-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span><el-icon><TrendCharts /></el-icon> 就医统计</span>
+            <el-button type="primary" link size="small" @click="exportReport">导出报告</el-button>
+          </div>
+        </template>
+        <div ref="chartRef" class="chart-container"></div>
+      </el-card>
+    </div>
+
+
+
+    <!-- 就诊记录列表（原有功能） -->
+    <div class="records-list-section">
+      <div class="filter-card">
+        <div class="left-panel">
+          <h3 class="page-title">就诊记录时间轴</h3>
+          <span class="subtitle">共 {{ total }} 条记录</span>
+        </div>
+        <div class="right-actions">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            class="filter-item date-picker"
+            @change="onDateChange"
+          />
+          <el-button class="refresh-btn" :icon="Refresh" circle @click="fetchList" title="刷新列表" />
+        </div>
+      </div>
+
+      <div class="list-content" v-loading="loading">
+        <el-timeline v-if="list.length > 0">
+          <el-timeline-item
+            v-for="item in list"
+            :key="item.id"
+            :timestamp="item.visitDate"
+            placement="top"
+            :type="item.status === 1 ? 'success' : 'primary'"
+            :hollow="item.status === 0"
+          >
+            <el-card class="timeline-card" shadow="hover" @click="openCase(item)">
+              <div class="timeline-header">
+                <h4>{{ item.diagnosis || '待诊断' }}</h4>
+                <el-tag :type="statusType(item.status)" size="small">{{ statusText(item.status) }}</el-tag>
+              </div>
+              <p class="timeline-doctor">主治医生：{{ item.doctorName }}</p>
+              <p class="timeline-desc">{{ item.symptoms || '无主诉描述' }}</p>
+            </el-card>
+          </el-timeline-item>
+        </el-timeline>
+        <el-empty v-else description="暂无就诊记录" />
       </div>
     </div>
 
-    <!-- 详情抽屉 -->
+    <!-- 详情抽屉 (保持原有) -->
     <el-drawer
       v-model="drawerVisible"
       :show-close="false"
@@ -130,7 +127,6 @@
       </template>
 
       <div class="drawer-body" v-if="currentRecord">
-        <!-- 头部卡片：患者与基本信息 -->
         <div class="detail-card header-card">
           <div class="patient-info">
             <el-avatar :size="64" :src="userAvatar" class="avatar">{{ userShort }}</el-avatar>
@@ -148,17 +144,12 @@
           </div>
         </div>
 
-        <!-- 诊断详情 -->
         <div class="detail-card">
           <div class="card-title">诊断信息</div>
           <div class="info-grid">
             <div class="info-item">
               <span class="label">主治医生</span>
               <span class="value">{{ currentRecord.doctorName || '-' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">就诊科室</span>
-              <span class="value">全科</span>
             </div>
             <div class="info-item full">
               <span class="label">患者主诉</span>
@@ -168,28 +159,20 @@
               <span class="label">医生诊断</span>
               <span class="value highlight">{{ currentRecord.diagnosis || '暂无诊断' }}</span>
             </div>
-            <div class="info-item full" v-if="currentRecord.completedDate">
-              <span class="label">完成时间</span>
-              <span class="value">{{ currentRecord.completedDate }}</span>
-            </div>
           </div>
         </div>
 
-        <!-- 医嘱/处方 -->
         <div class="detail-card">
           <div class="card-title">治疗方案与处方</div>
-          
           <div class="info-grid">
             <div class="info-item full">
               <span class="label">治疗方案</span>
               <span class="value">{{ currentRecord.treatmentPlan || '暂无' }}</span>
             </div>
-            
             <div class="info-item full">
               <span class="label">处方信息</span>
               <span class="value">{{ currentRecord.prescription || '暂无' }}</span>
             </div>
-            
             <div class="info-item full">
               <span class="label">医生备注</span>
               <span class="value">{{ currentRecord.notes || '暂无' }}</span>
@@ -198,268 +181,425 @@
         </div>
       </div>
     </el-drawer>
+
+    <!-- 编辑档案弹窗 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      title="编辑健康档案"
+      width="600px"
+      destroy-on-close
+      append-to-body
+    >
+      <el-form :model="editForm" :rules="rules" ref="editFormRef" label-width="100px">
+        <el-form-item label="身份证号" prop="idCard">
+          <el-input v-model="editForm.idCard" placeholder="请输入身份证号（建档必需）" />
+        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="血型" prop="bloodType">
+              <el-select v-model="editForm.bloodType" placeholder="请选择血型" style="width: 100%">
+                <el-option label="A型" value="A" />
+                <el-option label="B型" value="B" />
+                <el-option label="AB型" value="AB" />
+                <el-option label="O型" value="O" />
+                <el-option label="RH阴性" value="RH-" />
+                <el-option label="其他/未知" value="Unknown" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="联系电话" prop="emergencyPhone">
+              <el-input v-model="editForm.emergencyPhone" placeholder="紧急联系电话" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-form-item label="紧急联系人" prop="emergencyName">
+          <el-input v-model="editForm.emergencyName" placeholder="紧急联系人姓名" />
+        </el-form-item>
+        
+        <el-form-item label="居住地址" prop="address">
+          <el-input v-model="editForm.address" placeholder="请输入常住地址" />
+        </el-form-item>
+
+        <el-form-item label="过敏史" prop="allergyHistory">
+          <el-input v-model="editForm.allergyHistory" type="textarea" :rows="2" placeholder="如有过敏史请详细说明" />
+        </el-form-item>
+
+        <el-form-item label="慢性病史">
+          <el-input v-model="editForm.chronicDisease" type="textarea" :rows="2" placeholder="如有慢性病史请详细说明" />
+        </el-form-item>
+
+        <el-divider content-position="left">当前状况（选填）</el-divider>
+
+        <el-form-item label="当前症状">
+          <el-input v-model="editForm.currentSymptoms" type="textarea" :rows="2" placeholder="描述当前身体不适症状" />
+        </el-form-item>
+        
+        <!-- 治疗方案和医嘱建议通常由医生填写，但用户也可以备注 -->
+        <el-form-item label="当前治疗">
+          <el-input v-model="editForm.currentPlan" type="textarea" :rows="2" placeholder="正在进行的治疗或用药情况" />
+        </el-form-item>
+        
+        <el-form-item label="医嘱建议">
+          <el-input v-model="editForm.nextStep" type="textarea" :rows="2" placeholder="医生建议或后续计划" />
+        </el-form-item>
+
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="editLoading" @click="saveProfile">保存</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Refresh, Document, Close } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue'
+import { Refresh, Close, User, TrendCharts } from '@element-plus/icons-vue'
+import { ElMessage, type FormInstance } from 'element-plus'
+import { getMedicalRecordsByUserId, getMedicalRecordDetail } from '@/api/modules/medicalRecord'
+import { getPatientProfileByUserId, savePatientProfile } from '@/api/modules/patient'
 import { useUserStore } from '@/stores/user'
-import { getMedicalRecordsByUserId } from '@/api/modules/medicalRecord'
-import type { MedicalRecordItem } from '@/api/types/medicalRecordTypes'
+import * as echarts from 'echarts'
 
-const userStore = useUserStore()
-
-// 状态定义
-const list = ref<MedicalRecordItem[]>([])
-const rawList = ref<MedicalRecordItem[]>([])
+const store = useUserStore()
 const loading = ref(false)
+const list = ref<any[]>([])
 const total = ref(0)
-const page = ref(1)
-const pageSize = ref(10)
-const status = ref<number | undefined>(undefined)
-const dateRange = ref<[string, string] | []>([])
+const dateRange = ref('')
+const status = ref<number | null>(null)
 
+// 健康档案数据
+const healthProfile = ref<any>(null)
+
+// 编辑档案相关
+const editDialogVisible = ref(false)
+const editLoading = ref(false)
+const editFormRef = ref<FormInstance>()
+const editForm = reactive({
+  idCard: '',
+  bloodType: '',
+  allergyHistory: '',
+  chronicDisease: '',
+  currentSymptoms: '',
+  currentPlan: '',
+  nextStep: '',
+  address: '',
+  emergencyName: '',
+  emergencyPhone: ''
+})
+
+const rules = {
+  idCard: [
+    { required: true, message: '请输入身份证号', trigger: 'blur' },
+    { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/, message: '请输入正确的身份证号格式', trigger: 'blur' }
+  ],
+  bloodType: [
+    { required: true, message: '请选择血型', trigger: 'change' }
+  ],
+  emergencyName: [
+    { required: true, message: '请输入紧急联系人姓名', trigger: 'blur' }
+  ],
+  emergencyPhone: [
+    { required: true, message: '请输入紧急联系人电话', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码格式', trigger: 'blur' }
+  ],
+  address: [
+    { required: true, message: '请输入居住地址', trigger: 'blur' }
+  ]
+}
+
+// 详情抽屉
 const drawerVisible = ref(false)
-const currentRecord = ref<MedicalRecordItem | null>(null)
+const currentRecord = ref<any>(null)
 
-// 快捷日期选项
-const shortcuts = [
-  { text: '最近一周', value: () => { const end = new Date(); const start = new Date(); start.setTime(start.getTime() - 3600 * 1000 * 24 * 7); return [start, end] } },
-  { text: '最近一个月', value: () => { const end = new Date(); const start = new Date(); start.setTime(start.getTime() - 3600 * 1000 * 24 * 30); return [start, end] } },
-  { text: '最近三个月', value: () => { const end = new Date(); const start = new Date(); start.setTime(start.getTime() - 3600 * 1000 * 24 * 90); return [start, end] } },
-]
+// 用户信息
+const userAvatar = computed(() => store.userInfo?.avatarUrl || '')
+const userName = computed(() => store.userInfo?.realName || store.userInfo?.username || '用户')
+const userShort = computed(() => userName.value.charAt(0))
 
-/** 获取用户姓名 */
-const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '-')
-/** 获取用户头像 */
-const userAvatar = computed(() => userStore.userInfo?.avatarUrl || '')
-/** 获取用户首字母 */
-const userShort = computed(() => String(userName.value || '?').slice(0, 1))
+// 图表
+const chartRef = ref<HTMLElement | null>(null)
+let chartInstance: echarts.ECharts | null = null
 
-/** 状态文案 */
-function statusText(s: number | undefined): string {
-  if (s === 0) return '治疗中'
-  if (s === 1) return '已完成'
-  if (s === 2) return '已归档'
-  return '未知'
+onMounted(() => {
+  fetchList()
+  fetchProfile()
+})
+
+async function fetchProfile() {
+  if (!store.userInfo?.id) return
+  try {
+    const res = await getPatientProfileByUserId(store.userInfo.id)
+    if (res.code === 200) {
+      healthProfile.value = res.data
+    }
+  } catch (err) {
+    console.error('获取健康档案失败', err)
+  }
 }
 
-/** 状态标签类型 */
-function statusType(s: number | undefined): 'success' | 'warning' | 'info' | 'danger' {
-  if (s === 0) return 'warning'
-  if (s === 1) return 'success'
-  if (s === 2) return 'info'
-  return 'info'
-}
-
-/** 表格行样式 */
-const tableRowClassName = ({ rowIndex }: { rowIndex: number }) => {
-  return 'record-row'
-}
-
-/**
- * 拉取列表
- * 
- * 字段展示说明（供后端参考）：
- * 【列表页】
- * 1. id: 病例号
- * 2. diagnosis: 诊断信息（若无则展示 symptoms）
- * 3. doctorName: 主治医生姓名
- * 4. visitDate: 就诊时间（yyyy-MM-dd HH:mm:ss）
- * 5. status: 状态（0治疗中, 1已完成, 2已归档）
- * 
- * 【详情页】
- * 1. id: 病例号
- * 2. doctorName: 主治医生
- * 3. visitDate: 就诊时间
- * 4. symptoms/diagnosis: 主诉或诊断结果
- * 5. completedDate: 完成时间（status=1时展示）
- * 6. status: 当前状态
- */
 async function fetchList() {
-  if (!userStore.userInfo?.id) return
+  if (!store.userInfo?.id) return
   loading.value = true
   try {
-    const res = await getMedicalRecordsByUserId(userStore.userInfo.id)
-    const data = (res as any)?.data ?? []
-    rawList.value = Array.isArray(data) ? (data as MedicalRecordItem[]) : []
-    page.value = 1
-    applyLocalFilter()
-  } catch (e) {
-    ElMessage.error('获取病例失败，请稍后重试')
+    const res = await getMedicalRecordsByUserId(store.userInfo.id)
+    if (res.code === 200) {
+      list.value = res.data || []
+      total.value = list.value.length
+      initChart()
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取就诊记录失败')
   } finally {
     loading.value = false
   }
 }
 
-/**
- * 本地筛选并分页
- */
-function applyLocalFilter() {
-  const [begin, end] = Array.isArray(dateRange.value) ? dateRange.value : []
-  const s = typeof status.value === 'number' ? status.value : undefined
-  const filtered = rawList.value.filter(r => {
-    const statusOk = s === undefined ? true : r.status === s
-    const dateOk = inDateRange(r.visitDate || '', begin, end)
-    return statusOk && dateOk
+function initChart() {
+  nextTick(() => {
+    if (!chartRef.value) return
+    if (chartInstance) chartInstance.dispose()
+    
+    chartInstance = echarts.init(chartRef.value)
+    
+    // 统计每月就诊次数
+    const monthCounts: Record<string, number> = {}
+    list.value.forEach(item => {
+      if (item.visitDate) {
+        const month = item.visitDate.substring(0, 7) // YYYY-MM
+        monthCounts[month] = (monthCounts[month] || 0) + 1
+      }
+    })
+    
+    const months = Object.keys(monthCounts).sort()
+    const counts = months.map(m => monthCounts[m])
+    
+    const option = {
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: months },
+      yAxis: { type: 'value', minInterval: 1 },
+      series: [{
+        data: counts,
+        type: 'line',
+        smooth: true,
+        areaStyle: { opacity: 0.2 },
+        itemStyle: { color: '#409eff' }
+      }],
+      grid: { top: 30, right: 20, bottom: 20, left: 30, containLabel: true }
+    }
+    
+    chartInstance.setOption(option)
   })
-  // 按日期倒序排列
-  filtered.sort((a, b) => {
-    const da = new Date(a.visitDate || 0).getTime()
-    const db = new Date(b.visitDate || 0).getTime()
-    return db - da
-  })
-  
-  total.value = filtered.length
-  const start = (page.value - 1) * pageSize.value
-  list.value = filtered.slice(start, start + pageSize.value)
 }
 
-/**
- * 判断就诊日期是否落入选择的日期范围
- */
-function inDateRange(visitDate: string, begin?: string, end?: string): boolean {
-  const d = (visitDate || '').slice(0, 10)
-  const ge = begin ? d >= begin : true
-  const le = end ? d <= end : true
-  return ge && le
+// 监听窗口大小变化调整图表
+window.addEventListener('resize', () => {
+  chartInstance?.resize()
+})
+
+async function openCase(row: any) {
+  try {
+    const res = await getMedicalRecordDetail(row.id)
+    if (res.code === 200) {
+      currentRecord.value = res.data
+      drawerVisible.value = true
+    }
+  } catch (error) {
+    ElMessage.error('获取详情失败')
+  }
 }
 
-/** 翻页 */
-function onPageChange(p: number) {
-  page.value = p
-  applyLocalFilter()
-}
-
-/** 分页尺寸变化 */
-function onPageSizeChange(size: number) {
-  pageSize.value = size
-  page.value = 1
-  applyLocalFilter()
-}
-
-/** 日期变化 */
 function onDateChange() {
-  page.value = 1
-  applyLocalFilter()
+  // 简单的前端筛选实现
+  fetchList().then(() => {
+    if (dateRange.value) {
+      const [start, end] = dateRange.value
+      list.value = list.value.filter(item => {
+        const date = item.visitDate.split(' ')[0]
+        return date >= start && date <= end
+      })
+    }
+  })
 }
 
-/** 其他筛选变化 */
-function onFilterChange() {
-  page.value = 1
-  applyLocalFilter()
+function getBloodTypeTag(type: string) {
+  const map: Record<string, string> = {
+    'A': '', 'B': 'success', 'AB': 'warning', 'O': 'danger', 'RH-': 'info'
+  }
+  return map[type] || 'info'
 }
 
-/** 打开病例详情 */
-function openCase(row: MedicalRecordItem) {
-  currentRecord.value = row
-  drawerVisible.value = true
+function statusType(status: number) {
+  return status === 1 ? 'success' : (status === 2 ? 'info' : 'primary')
 }
 
-onMounted(fetchList)
+function statusText(status: number) {
+  const map = { 0: '治疗中', 1: '已完成', 2: '已归档' }
+  return map[status as keyof typeof map] || '未知'
+}
+
+function exportReport() {
+  ElMessage.success('正在生成PDF报告，请稍候...')
+  setTimeout(() => {
+    window.print()
+  }, 1000)
+}
+
+function openEditProfile() {
+  if (healthProfile.value) {
+    Object.assign(editForm, {
+      idCard: healthProfile.value.idCard || '',
+      bloodType: healthProfile.value.bloodType || '',
+      allergyHistory: healthProfile.value.allergyHistory || '',
+      chronicDisease: healthProfile.value.chronicDisease || '',
+      currentSymptoms: healthProfile.value.currentSymptoms || '',
+      currentPlan: healthProfile.value.currentPlan || '',
+      nextStep: healthProfile.value.nextStep || '',
+      address: healthProfile.value.address || '',
+      emergencyName: healthProfile.value.emergencyName || '',
+      emergencyPhone: healthProfile.value.emergencyPhone || ''
+    })
+  } else {
+    // 重置表单
+    Object.keys(editForm).forEach(key => (editForm as any)[key] = '')
+  }
+  editDialogVisible.value = true
+}
+
+async function saveProfile() {
+  if (!store.userInfo?.id) return
+  if (!editFormRef.value) return
+  
+  await editFormRef.value.validate(async (valid, fields) => {
+    if (valid) {
+      editLoading.value = true
+      try {
+        const res = await savePatientProfile(store.userInfo!.id, editForm)
+        if (res.code === 200) {
+          ElMessage.success('保存成功')
+          editDialogVisible.value = false
+          fetchProfile() // 刷新数据
+        } else {
+          ElMessage.error(res.message || '保存失败')
+        }
+      } catch (error) {
+        console.error(error)
+        ElMessage.error('保存失败，请稍后重试')
+      } finally {
+        editLoading.value = false
+      }
+    } else {
+      ElMessage.warning('请检查输入项是否正确')
+      console.log('error submit!', fields)
+    }
+  })
+}
 </script>
 
 <style scoped>
-.records-container {
+.health-records-container {
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  height: 100%;
+  gap: 20px;
 }
 
-/* 筛选头部 */
-.filter-card {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #fff;
-  /* 补偿 content-card 的 padding-top: 32px */
-  margin-top: -32px;
-  padding-top: 32px;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 20px;
+}
+
+.dashboard-card {
+  border-radius: 8px;
+}
+
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-weight: bold;
 }
 
-.left-panel .page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 4px 0;
+.chart-container {
+  height: 200px;
 }
 
-.left-panel .subtitle {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.right-actions {
+.report-list {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.report-item {
+  display: flex;
   align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  width: 280px;
 }
 
-.filter-item {
-  width: 200px;
-}
-
-.status-select {
-  width: 140px;
-}
-
-/* 列表区域 */
-.list-content {
+.report-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.custom-table {
-  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-.record-id {
-  font-family: 'Roboto Mono', monospace;
-  color: var(--el-text-color-secondary);
+.report-name {
   font-weight: 500;
+  truncate: hidden;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.diagnosis-info .main-text {
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-  margin-bottom: 4px;
+.report-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.timeline-card {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.timeline-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.timeline-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.timeline-doctor {
+  font-size: 13px;
+  color: #666;
+  margin: 4px 0;
+}
+
+.timeline-desc {
+  color: #888;
+  font-size: 13px;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.diagnosis-info .sub-text {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.time-info .date {
-  color: var(--el-text-color-regular);
-}
-
-.time-info .time {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: auto;
-  padding-top: 16px;
+  margin: 0;
 }
 
 /* 抽屉样式 */
@@ -467,7 +607,8 @@ onMounted(fetchList)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-right: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
 }
 
 .dh-left {
@@ -476,84 +617,38 @@ onMounted(fetchList)
   gap: 12px;
 }
 
-.dh-left h4 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.drawer-body {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px;
-}
-
 .detail-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  margin-bottom: 16px;
 }
 
 .header-card {
-  background: linear-gradient(to right, #f8fafc, #fff);
-  border-left: 4px solid var(--el-color-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #ebeef5;
 }
 
 .patient-info {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
 }
 
 .patient-info .name {
   font-size: 18px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.patient-info .id-row {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  display: flex;
-  gap: 6px;
-}
-
-.visit-time {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 12px;
-  border-top: 1px dashed var(--el-border-color-lighter);
-  font-size: 13px;
-}
-
-.visit-time .label { color: var(--el-text-color-secondary); }
-.visit-time .val { font-weight: 500; color: var(--el-text-color-primary); }
-
-.card-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  padding-left: 8px;
-  border-left: 3px solid var(--el-color-primary);
-  line-height: 1.2;
+  color: #1e293b;
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 24px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  gap: 16px;
+  margin-top: 12px;
 }
 
 .info-item.full {
@@ -561,60 +656,20 @@ onMounted(fetchList)
 }
 
 .info-item .label {
+  display: block;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: #64748b;
+  margin-bottom: 4px;
 }
 
 .info-item .value {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+  color: #334155;
   font-weight: 500;
 }
 
-.info-item .value.highlight {
-  color: var(--el-color-primary-dark-2);
-  line-height: 1.5;
-}
-
-.empty-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 0;
-  color: var(--el-text-color-placeholder);
-  gap: 8px;
-}
-
-/* 响应式适配 */
-@media (max-width: 768px) {
-  .filter-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .right-actions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .filter-item {
-    flex: 1;
-    min-width: 120px;
-  }
-
-  .refresh-btn {
-    margin-left: auto;
-  }
-
-  /* 在小屏幕下隐藏部分非关键列，或调整表格样式 */
-  .custom-table :deep(.el-table__header) {
-    font-size: 13px;
-  }
-  
-  .custom-table :deep(.cell) {
-    padding: 0 8px;
-  }
+.highlight {
+  color: #0ea5e9;
+  font-weight: 600;
 }
 </style>
