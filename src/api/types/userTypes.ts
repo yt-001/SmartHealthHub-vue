@@ -3,8 +3,8 @@
  * - LoginPayload：后端要求 @RequestParam/@RequestBody 的字段
  */
 export interface LoginPayload {
-  /** 手机号 */
-  phone: string
+  /** 账号 (手机号或邮箱) */
+  account: string
   /** 密码 */
   password: string
   /** 角色（可选）：管理员=0，医生=1，用户=2 */

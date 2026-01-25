@@ -89,6 +89,7 @@ const routes: RouteRecordRaw[] = [
 
       // 药品管理
       { path: 'admin/medicine-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品信息管理' } },
+      { path: 'admin/order-manage', component: () => import('@/views/RoleDashboard/AdminSide/OrderManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品订单管理' } },
       { path: 'admin/medicine-category-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineCategoryManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品分类管理' } },
       { path: 'admin/medicine-category-relation-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineCategoryRelationManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '分类关联管理' } },
       { path: 'admin/medicine-tag-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineTagManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品标签管理' } },

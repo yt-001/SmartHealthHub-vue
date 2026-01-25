@@ -17,8 +17,8 @@ import type { MedicalRecordItem } from '../types/medicalRecordTypes'
  *   query?: { realName?, visitNo?, deptId?, status?, visitDateStart?, visitDateEnd? }
  * }
  */
-export const getMedicalRecordPage = (payload: any): Promise<PageResponse<MedicalRecordItem>> => {
-  return request.post('/admin/medicalRecords/page', payload) as Promise<PageResponse<MedicalRecordItem>>
+export const getMedicalRecordPage = (payload: any): Promise<ApiResponse<PageResponse<MedicalRecordItem>>> => {
+  return request.post('/medicalRecords/page', payload) as Promise<ApiResponse<PageResponse<MedicalRecordItem>>>
 }
 
 export const medicalRecordApi = {

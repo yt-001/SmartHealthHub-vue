@@ -118,6 +118,11 @@
           <el-tag :type="statusInfo(row.status).type">{{ statusInfo(row.status).text }}</el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="操作" width="100" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="primary" size="small" @click="handleView(row)">详情</el-button>
+        </template>
+      </el-table-column>
 
       <!-- 空数据插槽 -->
       <template #empty>
@@ -138,12 +143,54 @@
         @size-change="onPageSizeChange"
       />
     </div>
+
+    <!-- 详情弹窗 -->
+    <el-dialog
+      v-model="detailVisible"
+      title="病例档案详情"
+      width="700px"
+      append-to-body
+      destroy-on-close
+    >
+      <div v-if="currentDetail" class="detail-content">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="患者姓名">{{ currentDetail.patientName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="医生姓名">{{ currentDetail.doctorName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="就诊日期">{{ formatTime(currentDetail.visitDate) }}</el-descriptions-item>
+          <el-descriptions-item label="完成日期">{{ formatTime(currentDetail.completedDate) }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="statusInfo(currentDetail.status).type">{{ statusInfo(currentDetail.status).text }}</el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div class="section-title">症状描述</div>
+        <div class="text-content">{{ currentDetail.symptoms || '无' }}</div>
+
+        <div class="section-title">诊断结果</div>
+        <div class="text-content">{{ currentDetail.diagnosis || '无' }}</div>
+
+        <div class="section-title">治疗方案</div>
+        <div class="text-content">{{ currentDetail.treatmentPlan || '无' }}</div>
+
+        <div class="section-title">处方明细</div>
+        <el-table :data="prescriptionList" border stripe size="small" style="margin-top: 10px">
+          <el-table-column prop="drugName" label="药品名称" min-width="150" />
+          <el-table-column prop="specification" label="规格" width="120" />
+          <el-table-column prop="quantity" label="数量" width="80" />
+          <el-table-column prop="usage" label="用法用量" min-width="150" />
+          <el-table-column prop="notes" label="备注" min-width="100" show-overflow-tooltip />
+        </el-table>
+
+        <div class="section-title">医生备注</div>
+        <div class="text-content">{{ currentDetail.notes || '无' }}</div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 // 页面逻辑（中文注释）：接入接口，请求与页面刷新同时进行；加载动画至少 1 秒；分页请求防抖
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { formatTime, useDebounce } from '@/utils/common'
 import { medicalRecordApi } from '@/api/modules/medicalRecord'
@@ -151,6 +198,23 @@ import type { MedicalRecordItem } from '@/api/types/medicalRecordTypes'
 
 /** 高级筛选开关 */
 const advancedOpen = ref(false)
+const detailVisible = ref(false)
+const currentDetail = ref<MedicalRecordItem | null>(null)
+
+const prescriptionList = computed(() => {
+  if (!currentDetail.value?.prescription) return []
+  try {
+    return JSON.parse(currentDetail.value.prescription)
+  } catch (e) {
+    console.warn('解析处方JSON失败', e)
+    return []
+  }
+})
+
+const handleView = (row: MedicalRecordItem) => {
+  currentDetail.value = row
+  detailVisible.value = true
+}
 
 /** 列表与状态 */
 const list = ref<MedicalRecordItem[]>([])
@@ -343,6 +407,25 @@ onMounted(fetchList)
 .query-form.is-compact {
   flex-wrap: nowrap;
 }
+
+.section-title {
+  font-weight: bold;
+  font-size: 15px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  color: var(--el-text-color-primary);
+  border-left: 3px solid var(--el-color-primary);
+  padding-left: 8px;
+}
+
+.text-content {
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background-color: var(--el-fill-color-light);
+  padding: 10px;
+  border-radius: 4px;
+}
+
 .query-form.is-compact :deep(.el-form-item) {
   flex: 1 1 0;
   min-width: 0;

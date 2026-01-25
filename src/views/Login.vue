@@ -213,7 +213,7 @@ const onSignIn = async () => {
     // 注意：后端 LoginRequestDTO 需要支持 account 字段，或者我们将 account 传给 phone 字段（如果后端做了兼容）
     // 为了兼容性，我们暂且将 account 赋值给 phone 字段，同时修改后端 DTO 以支持非手机号格式
     const loginResp = await userApi.login({
-      phone: signinAccount.value, 
+      account: signinAccount.value, 
       password: signinPassword.value,
       role: roleMap[loginRole.value]
     }) as ApiResponse;
