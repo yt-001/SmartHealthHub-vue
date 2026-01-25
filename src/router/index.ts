@@ -110,7 +110,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'doctor/emr', component: Error404, meta: { roles: ['doctor'], title: '电子病历' } },
       { path: 'doctor/visit-records', component: Error404, meta: { roles: ['doctor'], title: '就诊记录' } },
       { path: 'doctor/history-search', component: Error404, meta: { roles: ['doctor'], title: '历史诊疗查询' } },
-      { path: 'doctor/e-prescription', component: Error404, meta: { roles: ['doctor'], title: '电子处方' } },
+      { path: 'doctor/e-prescription', component: () => import('@/views/RoleDashboard/DoctorSide/ElectronicPrescription.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['doctor'], title: '电子处方' } },
       { path: 'doctor/exam-apply', component: Error404, meta: { roles: ['doctor'], title: '检查/检验申请' } },
       { path: 'doctor/diagnosis', component: Error404, meta: { roles: ['doctor'], title: '诊断记录' } },
       { path: 'doctor/medical-orders', component: Error404, meta: { roles: ['doctor'], title: '医嘱管理' } },

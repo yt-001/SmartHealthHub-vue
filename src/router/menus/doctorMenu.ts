@@ -25,13 +25,13 @@ const doctorMenu: MenuItem[] = [
     icon: "FirstAidKit",
     children: [
       { title: "电子处方", path: "/portal/doctor/e-prescription", icon: "Edit" },
-      { title: "检查/检验申请", path: "/portal/doctor/exam-apply", icon: "DocumentAdd" },
-      { title: "诊断记录", path: "/portal/doctor/diagnosis", icon: "Notebook" },
-      {
-        title: "医嘱管理",
-        path: "/portal/doctor/medical-orders",
-        icon: "List",
-      },
+      // { title: "检查/检验申请", path: "/portal/doctor/exam-apply", icon: "DocumentAdd" },
+      // { title: "诊断记录", path: "/portal/doctor/diagnosis", icon: "Notebook" },
+      // {
+      //   title: "医嘱管理",
+      //   path: "/portal/doctor/medical-orders",
+      //   icon: "List",
+      // },
     ],
   },
   {
@@ -46,10 +46,10 @@ const doctorMenu: MenuItem[] = [
     icon: "User",
     children: [
       { title: "患者预约处理", path: "/portal/doctor/patient-appointment-process", icon: "Calendar" },
-      { title: "患者列表", path: "/portal/doctor/patient-list", icon: "List" },
-      { title: "电子病历", path: "/portal/doctor/emr", icon: "Document" },
-      { title: "就诊记录", path: "/portal/doctor/visit-records", icon: "Notebook" },
-      { title: "历史诊疗查询", path: "/portal/doctor/history-search", icon: "Clock" },
+      // { title: "患者列表", path: "/portal/doctor/patient-list", icon: "List" },
+      // { title: "电子病历", path: "/portal/doctor/emr", icon: "Document" },
+      // { title: "就诊记录", path: "/portal/doctor/visit-records", icon: "Notebook" },
+      // { title: "历史诊疗查询", path: "/portal/doctor/history-search", icon: "Clock" },
     ],
   },
   {

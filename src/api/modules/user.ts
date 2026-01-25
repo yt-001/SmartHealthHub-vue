@@ -54,3 +54,10 @@ export const updateProfile = async (data: Record<string, any>): Promise<ApiRespo
   // 这里默认使用 JSON 提交；http.ts 已处理 baseURL 与拦截器
   return request.put('/user/updateProfile', data) as Promise<ApiResponse<void>>
 }
+
+/**
+ * 注册接口
+ */
+export const register = async (data: any): Promise<ApiResponse<any>> => {
+  return request.post('/auth/register', data) as Promise<ApiResponse<any>>
+}
