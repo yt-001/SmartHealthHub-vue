@@ -169,18 +169,6 @@
         <div class="section-title">诊断结果</div>
         <div class="text-content">{{ currentDetail.diagnosis || '无' }}</div>
 
-        <div class="section-title">治疗方案</div>
-        <div class="text-content">{{ currentDetail.treatmentPlan || '无' }}</div>
-
-        <div class="section-title">处方明细</div>
-        <el-table :data="prescriptionList" border stripe size="small" style="margin-top: 10px">
-          <el-table-column prop="drugName" label="药品名称" min-width="150" />
-          <el-table-column prop="specification" label="规格" width="120" />
-          <el-table-column prop="quantity" label="数量" width="80" />
-          <el-table-column prop="usage" label="用法用量" min-width="150" />
-          <el-table-column prop="notes" label="备注" min-width="100" show-overflow-tooltip />
-        </el-table>
-
         <div class="section-title">医生备注</div>
         <div class="text-content">{{ currentDetail.notes || '无' }}</div>
       </div>
@@ -200,16 +188,6 @@ import type { MedicalRecordItem } from '@/api/types/medicalRecordTypes'
 const advancedOpen = ref(false)
 const detailVisible = ref(false)
 const currentDetail = ref<MedicalRecordItem | null>(null)
-
-const prescriptionList = computed(() => {
-  if (!currentDetail.value?.prescription) return []
-  try {
-    return JSON.parse(currentDetail.value.prescription)
-  } catch (e) {
-    console.warn('解析处方JSON失败', e)
-    return []
-  }
-})
 
 const handleView = (row: MedicalRecordItem) => {
   currentDetail.value = row

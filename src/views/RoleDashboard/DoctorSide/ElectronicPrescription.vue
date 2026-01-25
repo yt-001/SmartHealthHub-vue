@@ -3,35 +3,59 @@
     <el-row :gutter="20">
       <!-- 主内容区域 -->
       <el-col :span="24">
+        <!-- 就诊患者信息 -->
+        <el-card class="box-card mb-4">
+          <template #header>
+            <div class="card-header">
+              <span><el-icon><User /></el-icon> 就诊患者信息</span>
+            </div>
+          </template>
+          
+          <div class="patient-selection-area mb-4" style="display: flex; align-items: center;">
+            <span class="mr-2" style="margin-right: 10px; font-weight: bold;">查找患者:</span>
+            <el-select
+              v-model="selectedPatientId"
+              filterable
+              remote
+              placeholder="请输入姓名或手机号搜索患者"
+              :remote-method="searchPatients"
+              :loading="patientLoading"
+              style="width: 350px"
+              @change="handlePatientSelect"
+            >
+              <el-option
+                v-for="item in patientOptions"
+                :key="item.id"
+                :label="getPatientLabel(item)"
+                :value="item.patientId"
+              >
+                <span style="float: left">{{ item.patientName }}</span>
+                <span style="float: right; color: #8492a6; font-size: 13px" v-if="item.appointmentTime">
+                  {{ formatTime(item.appointmentTime) }}
+                </span>
+              </el-option>
+            </el-select>
+          </div>
+
+          <div v-if="currentPatient" class="patient-info-display">
+             <el-descriptions title="患者档案" :column="4" border>
+               <el-descriptions-item label="姓名">{{ currentPatient.patientName }}</el-descriptions-item>
+               <el-descriptions-item label="性别">{{ currentPatient.gender || '未知' }}</el-descriptions-item>
+               <el-descriptions-item label="年龄">{{ currentPatient.age || '未知' }}</el-descriptions-item>
+               <el-descriptions-item label="联系电话">{{ currentPatient.phone || '暂无' }}</el-descriptions-item>
+             </el-descriptions>
+          </div>
+          <div v-else class="no-patient-tip">
+            <el-alert title="请先搜索并选择就诊患者，以开启处方开具流程" type="info" :closable="false" show-icon />
+          </div>
+        </el-card>
+
         <!-- 处方明细 -->
         <el-card class="box-card mb-4">
           <template #header>
             <div class="card-header">
               <div class="header-left">
                 <span><el-icon><Document /></el-icon> 处方明细</span>
-                <!-- 移动到这里的患者选择 -->
-                <el-select
-                  v-model="selectedPatientId"
-                  filterable
-                  remote
-                  placeholder="请选择或搜索就诊患者"
-                  :remote-method="searchPatients"
-                  :loading="patientLoading"
-                  style="width: 300px; margin-left: 20px"
-                  @change="handlePatientSelect"
-                >
-                  <el-option
-                    v-for="item in patientOptions"
-                    :key="item.id"
-                    :label="getPatientLabel(item)"
-                    :value="item.patientId"
-                  >
-                    <span style="float: left">{{ item.patientName }}</span>
-                    <span style="float: right; color: #8492a6; font-size: 13px" v-if="item.appointmentTime">
-                      {{ formatTime(item.appointmentTime) }}
-                    </span>
-                  </el-option>
-                </el-select>
               </div>
               <el-button type="primary" link @click="openMedicineSelector">
                 <el-icon><Plus /></el-icon> 添加药品
@@ -39,15 +63,6 @@
             </div>
           </template>
           
-          <div v-if="currentPatient" class="patient-info-bar mb-4">
-             <el-descriptions :column="4" border size="small">
-               <el-descriptions-item label="姓名">{{ currentPatient.patientName }}</el-descriptions-item>
-               <el-descriptions-item label="性别">{{ currentPatient.gender || '未知' }}</el-descriptions-item>
-               <el-descriptions-item label="年龄">{{ currentPatient.age || '未知' }}</el-descriptions-item>
-               <el-descriptions-item label="电话">{{ currentPatient.phone || '无' }}</el-descriptions-item>
-             </el-descriptions>
-          </div>
-
           <el-table :data="prescriptionList" border stripe style="width: 100%">
             <el-table-column prop="name" label="药品名称" width="180" />
             <el-table-column prop="tags" label="类型" width="100">
@@ -239,14 +254,20 @@ async function searchPatients(query: string) {
   if (query) {
     patientLoading.value = true
     try {
+      // 智能识别：如果是数字则按手机号搜索，否则按姓名搜索
+      const isPhone = /^\d+$/.test(query)
+      const queryParams: any = {}
+      if (isPhone) {
+        queryParams.phone = query
+      } else {
+        queryParams.realName = query
+      }
+
       // 调用后端搜索接口 /admin/patients/page
-      // 注意：这里复用了管理员的查询接口，实际权限控制需根据项目配置调整
       const res: any = await request.post('/admin/patients/page', {
         pageNum: 1,
         pageSize: 20,
-        query: {
-          realName: query // 支持按姓名搜索
-        }
+        query: queryParams
       })
       
       if (res.code === 200) {
@@ -405,7 +426,7 @@ function addMedicine(med: any) {
       name: med.name,
       price: med.price,
       quantity: 1,
-      usage: '',
+      usage: med.dosage || '',
       tags: med.tags
     })
   }
@@ -416,12 +437,10 @@ function removeMedicine(index: number) {
   prescriptionList.value.splice(index, 1)
 }
 
+import { prescriptionApi } from '@/api/modules/prescription'
+
 // 提交处方
 async function submitPrescription() {
-  // if (!currentPatient.value) {
-  //   ElMessage.warning('请先选择患者')
-  //   return
-  // }
   if (prescriptionList.value.length === 0 && !diagnosisForm.diagnosis) {
     ElMessage.warning('请至少填写诊断结果或添加药品')
     return
@@ -430,23 +449,28 @@ async function submitPrescription() {
   submitting.value = true
   try {
     const data = {
-      userId: currentPatient.value?.patientId || -1, // 如果未选择患者，传递默认值或空值（视后端要求而定）
+      userId: currentPatient.value.patientId,
       doctorId: doctorId.value,
-      userName: currentPatient.value?.patientName || '未知/测试患者',
+      patientName: currentPatient.value.patientName || '未知/测试患者',
       doctorName: userStore.userInfo?.realName || userStore.userInfo?.username,
-      symptoms: diagnosisForm.symptoms,
-      diagnosis: diagnosisForm.diagnosis,
-      treatmentPlan: diagnosisForm.treatmentPlan,
+      diagnosis: `主诉: ${diagnosisForm.symptoms || '无'}\n诊断: ${diagnosisForm.diagnosis || '无'}\n方案: ${diagnosisForm.treatmentPlan || '无'}`,
+      medicationDetails: JSON.stringify(prescriptionList.value.map(item => ({
+        drugName: item.name,
+        specification: item.tags?.join(' ') || '',
+        quantity: item.quantity,
+        usage: item.usage,
+        price: item.price,
+        amount: (item.price * item.quantity).toFixed(2),
+        notes: '' // 暂无备注字段
+      }))),
       notes: diagnosisForm.notes,
-      prescription: JSON.stringify(prescriptionList.value),
-      status: 0 // 治疗中
+      status: 0 // 待取药
     }
     
-    const res: any = await request.post('/medicalRecords/save', data)
+    const res: any = await prescriptionApi.create(data)
     if (res.code === 200) {
-      ElMessage.success('处方保存成功')
+      ElMessage.success('处方开具成功')
       resetForm()
-      // 可以选择是否跳转或刷新
     } else {
       ElMessage.error(res.message || '保存失败')
     }

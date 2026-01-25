@@ -45,6 +45,7 @@ const adminMenu: MenuItem[] = [
     icon: "Collection",
     children: [
       { title: "药品信息管理", path: "/portal/admin/medicine-manage", icon: "CollectionTag" },
+      { title: "处方管理", path: "/portal/admin/prescription-manage", icon: "Document" },
       { title: "药品订单管理", path: "/portal/admin/order-manage", icon: "ShoppingCart" },
       { title: "药品分类管理", path: "/portal/admin/medicine-category-manage", icon: "Collection" },
       { title: "分类关联管理", path: "/portal/admin/medicine-category-relation-manage", icon: "Link" },

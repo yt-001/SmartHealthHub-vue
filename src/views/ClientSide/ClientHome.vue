@@ -49,6 +49,9 @@
                 <el-dropdown-item command="records">
                   <el-icon><Document /></el-icon>我的病例
                 </el-dropdown-item>
+                <el-dropdown-item command="prescriptions">
+                  <el-icon><FirstAidKit /></el-icon>我的处方
+                </el-dropdown-item>
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>退出登录
                 </el-dropdown-item>
@@ -80,7 +83,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, Monitor, User, SwitchButton, Document } from '@element-plus/icons-vue'
+import { ArrowDown, Monitor, User, SwitchButton, Document, FirstAidKit } from '@element-plus/icons-vue'
 import { logout as apiLogout } from '@/api/modules/user'
 
 const router = useRouter()
@@ -129,6 +132,10 @@ const onMenuCommand = async (cmd: string) => {
   }
   if (cmd === 'records') {
     await router.push('/client/medical-records')
+    return
+  }
+  if (cmd === 'prescriptions') {
+    await router.push('/client/my-prescriptions')
     return
   }
   if (cmd === 'logout') {

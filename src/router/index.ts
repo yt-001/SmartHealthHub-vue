@@ -35,7 +35,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'video/:id', name: 'VideoDetail', component: () => import('@/views/ClientSide/VideoDetail/VideoDetailPage.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '视频详情' } },
       { path: 'article/:id', name: 'ArticleDetail', component: () => import('@/views/ClientSide/ArticleDetail/ArticleDetailPage.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '文章详情' } },
       { path: 'user-center', name: 'UserCenter', component: () => import('@/views/ClientSide/UserCenter.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '个人中心', roles: ['user'] } },
-      { path: 'medical-records', name: 'UserMedicalRecords', component: () => import('@/views/ClientSide/MedicalRecordsList.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '我的病例', roles: ['user'] } }
+      { path: 'medical-records', name: 'UserMedicalRecords', component: () => import('@/views/ClientSide/MedicalRecordsList.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '我的病例', roles: ['user'] } },
+      { path: 'my-prescriptions', name: 'MyPrescriptions', component: () => import('@/views/ClientSide/MyPrescriptions.vue').then(m => m.default || m).catch(() => Error404), meta: { title: '我的处方', roles: ['user'] } }
     ]
   },
 
@@ -90,6 +91,7 @@ const routes: RouteRecordRaw[] = [
       // 药品管理
       { path: 'admin/medicine-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品信息管理' } },
       { path: 'admin/order-manage', component: () => import('@/views/RoleDashboard/AdminSide/OrderManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品订单管理' } },
+      { path: 'admin/prescription-manage', component: () => import('@/views/RoleDashboard/AdminSide/PrescriptionManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '处方管理' } },
       { path: 'admin/medicine-category-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineCategoryManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品分类管理' } },
       { path: 'admin/medicine-category-relation-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineCategoryRelationManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '分类关联管理' } },
       { path: 'admin/medicine-tag-manage', component: () => import('@/views/RoleDashboard/AdminSide/Medicine/MedicineTagManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '药品标签管理' } },
