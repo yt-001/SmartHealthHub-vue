@@ -4,9 +4,16 @@
     <section class="top-section">
       <!-- 左：轮播图 -->
       <div class="carousel-wrap">
-        <el-carousel indicator-position="none" autoplay interval="4000" height="100%">
+        <el-carousel indicator-position="none" :autoplay="carouselAutoplay" interval="4000" height="100%">
           <el-carousel-item v-for="(banner, idx) in banners" :key="idx">
-            <div class="banner-item" :style="{ backgroundImage: `url(${banner.src})` }">
+            <div class="banner-item">
+              <img
+                class="banner-img"
+                :src="banner.src"
+                :alt="banner.title"
+                :loading="idx === 0 ? 'eager' : 'lazy'"
+                decoding="async"
+              />
               <div class="banner-mask">
                 <h3 class="banner-title">{{ banner.title }}</h3>
                 <p class="banner-sub">{{ banner.subtitle }}</p>
@@ -20,7 +27,7 @@
       <aside class="hot-list" ref="hotListRef">
         <div class="hot-header">热点</div>
         <ol class="hot-items">
-          <li v-for="(item, i) in hotTopics" :key="item.id" class="hot-item">
+          <li v-for="(item, i) in hotTopics" :key="item.id" class="hot-item" @click="onOpenArticle(item)" style="cursor: pointer;">
             <span class="rank">{{ i + 1 }}</span>
             <a href="javascript:void(0)" class="hot-link" :title="item.title">{{ item.title }}</a>
           </li>
@@ -42,7 +49,7 @@
           :show-edit-left="false"
           :view-count="it.viewCount || 0"
           :author-name="it.authorName || ''"
-          :enable-cover-preview="true"
+          :enable-cover-preview="false"
           @primary="onOpenArticle(it)"
         />
       </div>
@@ -58,30 +65,181 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onActivated, onDeactivated, onMounted, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
-import banner1 from '@/assets/57-bg.png'
-import banner2 from '@/assets/PersonalHome-Page.png'
 import MediaCard from '@/components/MediaCard.vue'
 import PullUpLoading from '@/components/PullUpLoading.vue'
 import { usePullUpLoad } from '@/hooks/usePullUpLoad'
-import { fetchPublicArticlesPage } from '@/api/modules/article'
+import { fetchPublicArticlesPage, fetchHotArticles } from '@/api/modules/article'
+import { displayCarouselItems } from '@/api/modules/carouselItems'
 import type { HealthArticleVO } from '@/api/types/articleTypes'
 
-// 轮播图与热点数据（保留静态）
-const banners = ref([
-  { src: banner1, title: '关爱健康，从今天开始', subtitle: '科学管理，智慧守护您的每一天' },
-  { src: banner2, title: '社区卫生服务', subtitle: '连接医生与用户，打造健康生态' },
-])
-const hotTopics = ref(
-  Array.from({ length: 10 }).map((_, i) => ({ id: i + 1, title: `热点主题示例 ${i + 1}` }))
-)
+defineOptions({ name: 'ClientHomePage' })
+
+type CacheEntry<T> = {
+  t: number
+  ttl: number
+  v: T
+}
+
+/**
+ * 从 localStorage 读取带 TTL 的缓存数据（过期或解析失败返回 null）
+ */
+const readCache = <T,>(key: string): T | null => {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const entry = JSON.parse(raw) as CacheEntry<T>
+    if (!entry || typeof entry.t !== 'number' || typeof entry.ttl !== 'number') return null
+    if (Date.now() - entry.t > entry.ttl) {
+      localStorage.removeItem(key)
+      return null
+    }
+    return entry.v ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 将数据写入 localStorage，并附带 TTL（写入失败直接忽略）
+ */
+const writeCache = <T,>(key: string, value: T, ttlMs: number) => {
+  try {
+    const entry: CacheEntry<T> = { t: Date.now(), ttl: ttlMs, v: value }
+    localStorage.setItem(key, JSON.stringify(entry))
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * 在浏览器空闲时执行任务（无 requestIdleCallback 则降级为 setTimeout）
+ */
+const runWhenIdle = (fn: () => void) => {
+  const w = window as any
+  if (typeof w.requestIdleCallback === 'function') {
+    w.requestIdleCallback(fn, { timeout: 800 })
+  } else {
+    window.setTimeout(fn, 0)
+  }
+}
+
+/**
+ * 获取用户端主滚动容器（与 usePullUpLoad 的 scrollTarget 一致）
+ */
+const getScrollContainer = (): HTMLElement | null => {
+  const el = document.querySelector('.client-main')
+  return (el as HTMLElement) || null
+}
+
+const CACHE_KEYS = {
+  banners: 'shh:home:banners',
+  hotTopics: 'shh:home:hot-topics',
+  feed: 'shh:home:feed',
+  scrollTop: 'shh:home:scroll-top'
+} as const
+
+const CACHE_TTLS = {
+  banners: 30 * 60 * 1000,
+  hotTopics: 2 * 60 * 1000,
+  feed: 5 * 60 * 1000,
+  scrollTop: 24 * 60 * 60 * 1000
+} as const
+
+const carouselAutoplay = ref(true)
+let scrollSettleTimer: number | null = null
+
+/**
+ * 处理滚动时的性能降载：滚动中暂停轮播自动播放，滚动结束后恢复
+ */
+const handlePerfScroll = () => {
+  carouselAutoplay.value = false
+  if (scrollSettleTimer) window.clearTimeout(scrollSettleTimer)
+  scrollSettleTimer = window.setTimeout(() => {
+    carouselAutoplay.value = true
+  }, 400)
+}
+
+/**
+ * 绑定首页性能相关的滚动监听（只在首页激活时生效）
+ */
+const bindPerfScrollListener = () => {
+  const el = getScrollContainer()
+  if (!el) return
+  el.addEventListener('scroll', handlePerfScroll, { passive: true })
+}
+
+/**
+ * 解绑首页性能相关的滚动监听
+ */
+const unbindPerfScrollListener = () => {
+  const el = getScrollContainer()
+  if (!el) return
+  el.removeEventListener('scroll', handlePerfScroll)
+  if (scrollSettleTimer) window.clearTimeout(scrollSettleTimer)
+  scrollSettleTimer = null
+  carouselAutoplay.value = true
+}
+
+// 轮播图与热点数据
+const banners = ref<any[]>([])
+const hotTopics = shallowRef<HealthArticleVO[]>([])
+
+// 加载轮播图
+const loadBanners = async () => {
+  try {
+    const res = await displayCarouselItems()
+    if (res.code === 200 && res.data) {
+      const next = res.data.map(item => ({
+        ...item,
+        src: item.imageUrl,
+        subtitle: item.description
+      }))
+      banners.value = next
+      writeCache(CACHE_KEYS.banners, next, CACHE_TTLS.banners)
+    }
+  } catch (e) {
+    console.error('加载轮播图失败', e)
+  }
+}
+
+// 加载热点文章
+const loadHotTopics = async () => {
+  try {
+    const res = await fetchHotArticles(10)
+    if (res.code === 200) {
+      hotTopics.value = res.data
+      writeCache(CACHE_KEYS.hotTopics, res.data, CACHE_TTLS.hotTopics)
+    }
+  } catch (e) {
+    console.error('加载热点文章失败', e)
+  }
+}
+
+type HomeFeedCache = {
+  articles: HealthArticleVO[]
+  nextPageNum: number
+  hasMore: boolean
+}
 
 // 文章列表与分页状态
-const articles = ref<HealthArticleVO[]>([])
+const articles = shallowRef<HealthArticleVO[]>([])
 const pageNum = ref(1)
 const pageSize = 10
 const hasMore = ref(true)
+
+/**
+ * 将首页文章列表与分页状态写入缓存（避免回到首页重复请求/重复渲染）
+ */
+const persistFeedCache = () => {
+  const payload: HomeFeedCache = {
+    articles: articles.value.slice(0, 60),
+    nextPageNum: pageNum.value,
+    hasMore: hasMore.value
+  }
+  writeCache(CACHE_KEYS.feed, payload, CACHE_TTLS.feed)
+}
 
 // 加载更多文章
 const loadMore = async () => {
@@ -93,11 +251,14 @@ const loadMore = async () => {
     const list: HealthArticleVO[] = res?.data?.list || []
     
     if (list.length > 0) {
-      articles.value.push(...list)
+      // 使用 shallowRef 需重新赋值触发更新
+      articles.value = [...articles.value, ...list]
       pageNum.value += 1
       hasMore.value = list.length === pageSize
+      persistFeedCache()
     } else {
       hasMore.value = false
+      persistFeedCache()
     }
   } catch (e) {
     console.error(e)
@@ -125,11 +286,75 @@ const initLoad = async () => {
     articles.value = list
     pageNum.value = 2
     hasMore.value = list.length === pageSize
+    persistFeedCache()
   } catch (e) {
     console.error(e)
   }
 }
-initLoad()
+
+/**
+ * 先从缓存恢复首页数据，再在空闲时静默刷新（SWR：stale-while-revalidate）
+ */
+const bootstrapHomeCache = () => {
+  const cachedBanners = readCache<any[]>(CACHE_KEYS.banners)
+  if (cachedBanners?.length) {
+    banners.value = cachedBanners
+  }
+
+  const cachedHot = readCache<HealthArticleVO[]>(CACHE_KEYS.hotTopics)
+  if (cachedHot?.length) {
+    hotTopics.value = cachedHot
+  }
+
+  const cachedFeed = readCache<HomeFeedCache>(CACHE_KEYS.feed)
+  if (cachedFeed?.articles?.length) {
+    articles.value = cachedFeed.articles
+    pageNum.value = Math.max(1, cachedFeed.nextPageNum || 2)
+    hasMore.value = typeof cachedFeed.hasMore === 'boolean' ? cachedFeed.hasMore : true
+  }
+
+  runWhenIdle(() => {
+    loadBanners()
+    loadHotTopics()
+    initLoad()
+  })
+}
+
+/**
+ * 还原首页滚动位置（配合 keep-alive 与本地缓存）
+ */
+const restoreScrollTop = () => {
+  const cachedTop = readCache<number>(CACHE_KEYS.scrollTop)
+  if (typeof cachedTop !== 'number') return
+  const el = getScrollContainer()
+  if (!el) return
+  el.scrollTop = cachedTop
+}
+
+/**
+ * 保存首页滚动位置（避免回到首页时重新从顶部开始）
+ */
+const persistScrollTop = () => {
+  const el = getScrollContainer()
+  if (!el) return
+  writeCache(CACHE_KEYS.scrollTop, el.scrollTop, CACHE_TTLS.scrollTop)
+}
+
+onMounted(() => {
+  bootstrapHomeCache()
+  bindPerfScrollListener()
+  runWhenIdle(() => restoreScrollTop())
+})
+
+onActivated(() => {
+  bindPerfScrollListener()
+  runWhenIdle(() => restoreScrollTop())
+})
+
+onDeactivated(() => {
+  unbindPerfScrollListener()
+  persistScrollTop()
+})
 
 const router = useRouter()
 
@@ -194,9 +419,14 @@ const onOpenArticle = (it: HealthArticleVO) => {
 .banner-item {
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
   position: relative;
+}
+
+.banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .banner-mask {
@@ -329,29 +559,13 @@ const onOpenArticle = (it: HealthArticleVO) => {
 
 .articles-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 24px;
 }
 
-/* 列表项交错动画 */
-.articles-grid > * {
-  animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  opacity: 0;
+.client-home-container :deep(.shh-card) {
+  box-shadow: none;
 }
-
-/* 生成1-12个子元素的交错延迟 */
-.articles-grid > *:nth-child(1) { animation-delay: 0.1s; }
-.articles-grid > *:nth-child(2) { animation-delay: 0.15s; }
-.articles-grid > *:nth-child(3) { animation-delay: 0.2s; }
-.articles-grid > *:nth-child(4) { animation-delay: 0.25s; }
-.articles-grid > *:nth-child(5) { animation-delay: 0.3s; }
-.articles-grid > *:nth-child(6) { animation-delay: 0.35s; }
-.articles-grid > *:nth-child(7) { animation-delay: 0.4s; }
-.articles-grid > *:nth-child(8) { animation-delay: 0.45s; }
-.articles-grid > *:nth-child(9) { animation-delay: 0.5s; }
-.articles-grid > *:nth-child(10) { animation-delay: 0.55s; }
-.articles-grid > *:nth-child(11) { animation-delay: 0.6s; }
-.articles-grid > *:nth-child(12) { animation-delay: 0.65s; }
 
 /* 响应式调整 */
 @media (max-width: 992px) {

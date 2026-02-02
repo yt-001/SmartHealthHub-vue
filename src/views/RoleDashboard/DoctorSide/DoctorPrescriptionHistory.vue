@@ -1,13 +1,10 @@
 <template>
-  <div class="prescription-manage-container">
+  <div class="prescription-history-container">
     <!-- 顶部搜索 -->
     <el-card shadow="never" class="search-card">
       <el-form :inline="true" :model="searchForm" class="search-form">
         <el-form-item label="患者姓名">
           <el-input v-model="searchForm.patientName" placeholder="请输入患者姓名" clearable @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item label="医生姓名">
-          <el-input v-model="searchForm.doctorName" placeholder="请输入医生姓名" clearable @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="全部" clearable style="width: 120px">
@@ -39,7 +36,6 @@
       >
         <el-table-column prop="id" label="ID" width="80" align="center" />
         <el-table-column prop="patientName" label="患者姓名" width="120" />
-        <el-table-column prop="doctorName" label="开方医生" width="120" />
         <el-table-column prop="diagnosis" label="诊断结果" min-width="150" show-overflow-tooltip />
         <el-table-column label="处方详情" width="100" align="center">
           <template #default="{ row }">
@@ -54,7 +50,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="开方时间" width="170" align="center" />
-
       </el-table>
 
       <div class="pagination-container">
@@ -127,7 +122,9 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { prescriptionApi, type PrescriptionItem } from '@/api/modules/prescription'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const loading = ref(false)
 const tableData = ref<PrescriptionItem[]>([])
 const detailVisible = ref(false)
@@ -135,7 +132,6 @@ const currentDetail = ref<PrescriptionItem | null>(null)
 
 const searchForm = reactive({
   patientName: '',
-  doctorName: '',
   status: undefined as number | undefined
 })
 
@@ -171,13 +167,21 @@ const validUntil = computed(() => {
 const fetchData = async () => {
   loading.value = true
   try {
+    // 获取当前登录医生ID
+    const doctorId = userStore.userInfo?.id
+    if (!doctorId) {
+      ElMessage.warning('无法获取当前医生信息，请重新登录')
+      loading.value = false
+      return
+    }
+
     const res = await prescriptionApi.getPage({
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize,
       query: {
         patientName: searchForm.patientName || undefined,
-        doctorName: searchForm.doctorName || undefined,
-        status: searchForm.status
+        status: searchForm.status,
+        doctorId: doctorId // 仅查询当前医生的处方
       }
     })
     if (res.code === 200) {
@@ -201,7 +205,6 @@ const handleSearch = () => {
 
 const resetSearch = () => {
   searchForm.patientName = ''
-  searchForm.doctorName = ''
   searchForm.status = undefined
   handleSearch()
 }
@@ -227,7 +230,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.prescription-manage-container {
+.prescription-history-container {
   height: 100%;
   display: flex;
   flex-direction: column;

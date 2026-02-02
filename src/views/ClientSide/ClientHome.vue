@@ -64,7 +64,11 @@
 
     <!-- 子页面容器 -->
     <main class="client-main" ref="mainContentRef">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <keep-alive include="ClientHomePage">
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
     </main>
 
     <!-- 退出登录全屏加载动画 -->

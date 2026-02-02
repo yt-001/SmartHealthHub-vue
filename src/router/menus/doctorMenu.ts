@@ -25,6 +25,7 @@ const doctorMenu: MenuItem[] = [
     icon: "FirstAidKit",
     children: [
       { title: "电子处方", path: "/portal/doctor/e-prescription", icon: "Edit" },
+      { title: "处方历史", path: "/portal/doctor/prescription-history", icon: "Document" },
       // { title: "检查/检验申请", path: "/portal/doctor/exam-apply", icon: "DocumentAdd" },
       // { title: "诊断记录", path: "/portal/doctor/diagnosis", icon: "Notebook" },
       // {

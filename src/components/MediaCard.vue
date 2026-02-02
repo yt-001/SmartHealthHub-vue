@@ -3,7 +3,13 @@
   <div class="shh-card">
     <!-- 封面展示区域：若无封面则显示占位 -->
     <div class="shh-cover" :class="{ clickable: enableCoverPreview && coverUrl }" @click="handleCoverClick">
-      <img v-if="coverUrl" :src="coverUrl" :alt="title" />
+      <img 
+        v-if="coverUrl" 
+        :src="coverUrl" 
+        :alt="title" 
+        loading="lazy"
+        decoding="async"
+      />
       <div v-else class="shh-cover-placeholder">暂无封面</div>
     </div>
 
@@ -96,6 +102,9 @@ const handleCoverClick = () => {
   overflow: hidden; /* 确保圆角 */
   display: flex;
   flex-direction: column;
+  content-visibility: auto;
+  contain: content;
+  contain-intrinsic-size: 320px 360px;
 }
 
 .shh-content {

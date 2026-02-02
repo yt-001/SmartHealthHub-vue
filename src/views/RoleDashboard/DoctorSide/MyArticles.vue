@@ -22,7 +22,7 @@
         :show-edit-left="showEdit"
         :view-count="it.viewCount"
         :author-name="it.authorName"
-        :enable-cover-preview="true"
+        :enable-cover-preview="false"
         @primary="onPrimary(it)"
         @secondary="onSecondary(it)"
       />

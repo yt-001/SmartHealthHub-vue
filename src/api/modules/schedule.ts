@@ -28,6 +28,7 @@ export const fetchHolidays = async (month: string): Promise<ApiResponse<HolidayI
     const dataMap = (mod.default || mod) as Record<string, HolidayItem[]>
     const list = dataMap[month] || []
     return {
+      message: '成功',
       code: 200,
       msg: '成功',
       data: list
@@ -35,6 +36,7 @@ export const fetchHolidays = async (month: string): Promise<ApiResponse<HolidayI
   } catch {
     // 兜底：读取失败返回空
     return {
+      message: '成功',
       code: 200,
       msg: '成功',
       data: []

@@ -149,7 +149,7 @@ export interface MedicineCategoryVO {
   level: number
   sortOrder: number
   iconUrl: string
-  status: number
+  isEnabled: number
   createdAt: string
   updatedAt: string
 }

@@ -15,8 +15,8 @@ export async function updateCarouselItem(data: CarouselItemsVO): Promise<ApiResp
 export async function deleteCarouselItem(id: string): Promise<ApiResponse<void>> {
   return (await request.delete(`/carousel-items/delete/${id}`)) as unknown as ApiResponse<void>
 }
-export async function displayCarouselItems(): Promise<CarouselItemsVO[]> {
-  return (await request.get('/carousel-items/display')) as unknown as CarouselItemsVO[]
+export async function displayCarouselItems(): Promise<ApiResponse<CarouselItemsVO[]>> {
+  return (await request.get('/carousel-items/display')) as unknown as ApiResponse<CarouselItemsVO[]>
 }
 export async function getCarouselItemById(id: string): Promise<CarouselItemsVO> {
   return (await request.get(`/carousel-items/${id}`)) as unknown as CarouselItemsVO

@@ -101,6 +101,11 @@ export function fetchArticleReviewDetail(id: string | number) {
   return request.get(path) as Promise<ApiResponse<HealthArticleVO>>
 }
 
+/** 获取热门文章列表 */
+export function fetchHotArticles(limit: number = 10) {
+  return request.get('/health-articles/public/hot', { params: { limit } }) as Promise<ApiResponse<HealthArticleVO[]>>
+}
+
 /** 审核健康文章（PUT /{id}/review?status=...） */
 export function approveArticleReview(id: string | number, status: 0 | 1 | 2 | 3 | 4) {
   const path = `${ARTICLE_REVIEW_DETAIL_BASE}/${id}/review`
