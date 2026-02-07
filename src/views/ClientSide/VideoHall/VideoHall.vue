@@ -4,9 +4,21 @@
       <!-- 左侧：轮播图 + 推荐栅格（填充轮播下方空白） -->
       <el-col :span="16" :xs="24">
         <el-card class="carousel-card" shadow="never" :body-style="{ padding: '0px' }">
-          <el-carousel height="320px" indicator-position="none">
-            <el-carousel-item v-for="(b, i) in banners" :key="i">
-              <img class="banner" :src="b" alt="banner" />
+          <el-carousel indicator-position="none" interval="4000" height="320px">
+            <el-carousel-item v-for="(banner, idx) in banners" :key="banner.id ?? idx">
+              <div class="banner-item">
+                <img
+                  class="banner-img"
+                  :src="banner.src"
+                  :alt="banner.title"
+                  :loading="idx === 0 ? 'eager' : 'lazy'"
+                  decoding="async"
+                />
+                <div class="banner-mask">
+                  <h3 class="banner-title">{{ banner.title }}</h3>
+                  <p class="banner-sub">{{ banner.subtitle }}</p>
+                </div>
+              </div>
             </el-carousel-item>
           </el-carousel>
         </el-card>
@@ -52,6 +64,7 @@ import PullUpLoading from '@/components/PullUpLoading.vue'
 import { usePullUpLoad } from '@/hooks/usePullUpLoad'
 import { fetchPublicVideosPage } from '@/api/modules/video'
 import type { HealthVideoVO } from '@/api/types/videoTypes'
+import { displayCarouselItems } from '@/api/modules/carouselItems'
 
 /**
  * 视频大厅页面
@@ -61,13 +74,22 @@ import type { HealthVideoVO } from '@/api/types/videoTypes'
 const router = useRouter()
 
 /**
- * 轮播图数据（占位）
+ * 轮播图数据
  */
-const banners: string[] = [
-  'https://picsum.photos/1200/320?random=11',
-  'https://picsum.photos/1200/320?random=12',
-  'https://picsum.photos/1200/320?random=13'
+interface BannerData {
+  id?: string
+  src: string
+  title: string
+  subtitle: string
+}
+
+const placeholderBanners: BannerData[] = [
+  { src: 'https://picsum.photos/1200/320?random=11', title: '', subtitle: '' },
+  { src: 'https://picsum.photos/1200/320?random=12', title: '', subtitle: '' },
+  { src: 'https://picsum.photos/1200/320?random=13', title: '', subtitle: '' }
 ]
+
+const banners = ref<BannerData[]>(placeholderBanners)
 
 // 定义组件使用的数据类型（适配后）
 interface VideoCardData {
@@ -152,6 +174,23 @@ const adaptVideoData = (vo: HealthVideoVO): VideoCardData => {
   }
 }
 
+const loadBanners = async () => {
+  try {
+    const res = await displayCarouselItems()
+    if (res.code === 200 && res.data && res.data.length > 0) {
+      banners.value = res.data.map(item => ({
+        id: item.id,
+        src: item.imageUrl,
+        title: item.title,
+        subtitle: item.description
+      }))
+    }
+  } catch (e) {
+    console.error('加载轮播图失败', e)
+    banners.value = placeholderBanners
+  }
+}
+
 /**
  * 初始化数据
  */
@@ -233,6 +272,7 @@ const goDetail = (id: string | number) => {
 }
 
 onMounted(() => {
+  loadBanners()
   initData()
 })
 </script>
@@ -279,11 +319,46 @@ onMounted(() => {
   opacity: 0;
 }
 
-.banner {
+.banner-item {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.banner-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 4px;
+  display: block;
+}
+
+.banner-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 18px 22px;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.65) 100%);
+  color: #fff;
+}
+
+.banner-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.banner-sub {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+  line-height: 1.4;
+  max-width: 95%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 推荐视频网格 */

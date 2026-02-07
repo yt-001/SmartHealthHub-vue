@@ -90,13 +90,16 @@
                   @click="goToDetail(med)"
                 >
                   <div class="med-image">
-                    <el-image :src="med.image" fit="cover">
+                    <el-image v-if="resolveCoverUrl(med)" :src="toAssetUrl(resolveCoverUrl(med))" fit="cover">
                       <template #error>
                         <div class="image-slot">
                           <el-icon><Picture /></el-icon>
                         </div>
                       </template>
                     </el-image>
+                    <div v-else class="image-slot">
+                      <el-icon><Picture /></el-icon>
+                    </div>
                     <div class="med-tag" v-if="med.recommendationLevel">
                       {{ med.recommendationLevel }}
                     </div>
@@ -139,13 +142,21 @@
                   <el-col :span="9" class="left-col">
                     <div class="detail-card image-card">
                       <div class="img-wrapper">
-                        <el-image :src="currentMedicine.image" fit="contain" class="detail-img">
+                        <el-image
+                          v-if="currentMedicine && resolveCoverUrl(currentMedicine)"
+                          :src="toAssetUrl(resolveCoverUrl(currentMedicine))"
+                          fit="contain"
+                          class="detail-img"
+                        >
                           <template #error>
                             <div class="img-error">
                               <el-icon :size="48" color="#ddd"><Picture /></el-icon>
                             </div>
                           </template>
                         </el-image>
+                        <div v-else class="img-error">
+                          <el-icon :size="48" color="#ddd"><Picture /></el-icon>
+                        </div>
                       </div>
                     </div>
                     <div class="detail-card intro-card">
@@ -341,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getPharmacyLocations } from '@/api/modules/pharmacy'
@@ -364,6 +375,32 @@ const userStore = useUserStore()
 
 interface CartItem extends MedicineRecommendationMedicineVO {
   quantity: number
+}
+
+const toAssetUrl = (url: string) => {
+  return encodeURI(url)
+}
+
+const resolveCoverUrl = (med: any): string => {
+  if (typeof med?.coverImageUrl === 'string' && med.coverImageUrl) {
+    return med.coverImageUrl
+  }
+  if (typeof med?.image === 'string' && med.image) {
+    return med.image
+  }
+  const images = med?.images
+  if (Array.isArray(images)) {
+    return typeof images[0] === 'string' ? images[0] : ''
+  }
+  if (typeof images === 'string' && images) {
+    try {
+      const parsed = JSON.parse(images)
+      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
+        return parsed[0]
+      }
+    } catch {}
+  }
+  return ''
 }
 
 // --- 支付相关状态 ---
@@ -405,19 +442,65 @@ const currentSubCategory = ref<MedicineRecommendationSubCategoryVO | null>(null)
 const currentMedicine = ref<MedicineRecommendationMedicineVO | null>(null)
 const searchQuery = ref('')
 
-onMounted(async () => {
+const syncSelectionWithLatestTree = () => {
+  if (!categories.value.length) {
+    currentCategoryId.value = ''
+    currentSubCategory.value = null
+    currentMedicine.value = null
+    return
+  }
+
+  const category =
+    categories.value.find(c => c.id === currentCategoryId.value) ?? categories.value[0]
+  currentCategoryId.value = category.id
+
+  if (currentSubCategory.value) {
+    const sub =
+      category.subCategories?.find(s => s.id === currentSubCategory.value?.id) ?? null
+    currentSubCategory.value = sub
+  }
+
+  if (!currentSubCategory.value) {
+    currentMedicine.value = null
+    return
+  }
+
+  if (currentMedicine.value) {
+    const med =
+      currentSubCategory.value.medicines?.find(m => m.id === currentMedicine.value?.id) ?? null
+    currentMedicine.value = med
+  }
+}
+
+const loadRecommendationTree = async (keyword?: string) => {
   try {
-    const res = await fetchRecommendationTree()
+    const trimmed = typeof keyword === 'string' ? keyword.trim() : ''
+    const res = await fetchRecommendationTree(trimmed ? trimmed : undefined)
     if (res.code === 200 && res.data) {
       categories.value = res.data
-      if (categories.value.length > 0) {
-        currentCategoryId.value = categories.value[0].id
-      }
+      syncSelectionWithLatestTree()
     }
   } catch (e) {
     console.error(e)
     ElMessage.error('获取推荐分类失败')
   }
+}
+
+let searchTimer: number | undefined
+watch(
+  () => searchQuery.value,
+  (val) => {
+    if (searchTimer) {
+      window.clearTimeout(searchTimer)
+    }
+    searchTimer = window.setTimeout(() => {
+      loadRecommendationTree(val)
+    }, 300)
+  }
+)
+
+onMounted(async () => {
+  await loadRecommendationTree(searchQuery.value)
 })
 
 // 悬浮按钮位置状态

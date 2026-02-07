@@ -255,7 +255,12 @@ export const deleteMedicineRecommendationLevel = (
 }
 
 /** 获取前台调理推荐分类树（GET /medicines/recommendation-tree） */
-export const fetchRecommendationTree = (): Promise<ApiResponse<MedicineRecommendationCategoryVO[]>> => {
-  return request.get('/medicines/recommendation-tree') as Promise<ApiResponse<MedicineRecommendationCategoryVO[]>>
+export const fetchRecommendationTree = (
+  keyword?: string
+): Promise<ApiResponse<MedicineRecommendationCategoryVO[]>> => {
+  const params = keyword ? { keyword } : undefined
+  return request.get('/medicines/recommendation-tree', { params }) as Promise<
+    ApiResponse<MedicineRecommendationCategoryVO[]>
+  >
 }
 

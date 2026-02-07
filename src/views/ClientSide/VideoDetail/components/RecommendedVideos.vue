@@ -13,22 +13,91 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PopularVideoCard from '@/views/ClientSide/VideoHall/components/PopularVideoCard.vue'
+import { fetchPublicVideosPage } from '@/api/modules/video'
+import type { HealthVideoVO } from '@/api/types/videoTypes'
 
 /**
  * 推荐视频组件
  * @description 侧边栏推荐视频列表，复用细长卡片组件
  */
+interface VideoCardData {
+  id: string | number
+  title: string
+  cover: string
+  videoUrl: string
+  duration: string
+  author: string
+  views: string
+  publishedAt: string
+  description?: string
+}
+
+const route = useRoute()
 const router = useRouter()
-const videos = ref([
-  { id: 101, title: '高血压患者的日常饮食指南，这几点一定要注意', cover: 'https://picsum.photos/360/200?random=22', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '12:30', views: '1.2万', publishedAt: '2天前', author: '心内科张医生', description: '饮食宜清淡，控制钠盐，合理搭配膳食结构。' },
-  { id: 102, title: '春季流感高发，如何正确预防？专家来支招', cover: 'https://picsum.photos/360/200?random=23', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '08:45', views: '8千', publishedAt: '5天前', author: '社区健康', description: '从接种疫苗到日常卫生措施，系统讲解高效预防。' },
-  { id: 103, title: '糖尿病早期症状有哪些？自测一下', cover: 'https://picsum.photos/360/200?random=24', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '05:20', views: '2.3万', publishedAt: '1周前', author: '内分泌科王医生', description: '通过症状自测与血糖监测，尽早识别风险。' },
-  { id: 104, title: '办公室久坐族必看！5分钟肩颈放松操', cover: 'https://picsum.photos/360/200?random=25', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '06:15', views: '5万', publishedAt: '2周前', author: '康复理疗师', description: '简单易学的缓解动作，提高肩颈灵活与舒适度。' },
-  { id: 105, title: '儿童疫苗接种全攻略，家长收藏备用', cover: 'https://picsum.photos/360/200?random=26', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', duration: '15:10', views: '3千', publishedAt: '1个月前', author: '儿保科李医生', description: '详细解读接种时间表与注意事项，家长必看。' }
-])
+const videos = ref<VideoCardData[]>([])
+
+const formatDuration = (seconds: number = 0): string => {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
+const formatViews = (count: number = 0): string => {
+  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
+  return count.toString()
+}
+
+const formatTime = (dateStr: string): string => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const days = Math.floor(diff / (1000 * 3600 * 24))
+
+  if (days === 0) return '今天'
+  if (days === 1) return '昨天'
+  if (days < 7) return `${days}天前`
+  return date.toLocaleDateString()
+}
+
+const adaptVideoData = (vo: HealthVideoVO): VideoCardData => {
+  return {
+    id: vo.id,
+    title: vo.title,
+    cover: vo.coverImageUrl,
+    videoUrl: vo.videoUrl,
+    duration: formatDuration(vo.duration),
+    author: vo.authorName || '未知作者',
+    views: formatViews(vo.viewCount),
+    publishedAt: formatTime(vo.createdAt),
+    description: vo.description
+  }
+}
+
+const loadRecommended = async () => {
+  try {
+    const res = await fetchPublicVideosPage({
+      pageNum: 1,
+      pageSize: 6,
+      sortField: 'view_count',
+      sortDirection: 'DESC'
+    })
+
+    const currentId = String(route.params.id || '')
+    const list = (res.data?.list || [])
+      .filter(v => String(v.id) !== currentId)
+      .slice(0, 5)
+      .map(adaptVideoData)
+
+    videos.value = list
+  } catch (error) {
+    console.error('获取推荐视频失败:', error)
+    videos.value = []
+  }
+}
 
 /**
  * 点击跳转详情
@@ -36,6 +105,17 @@ const videos = ref([
 const goDetail = (id: string | number) => {
   router.push(`/client/video/${id}`)
 }
+
+onMounted(() => {
+  loadRecommended()
+})
+
+watch(
+  () => route.params.id,
+  () => {
+    loadRecommended()
+  }
+)
 </script>
 
 <style scoped>
