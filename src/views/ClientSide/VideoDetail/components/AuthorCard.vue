@@ -1,14 +1,16 @@
 <template>
   <el-card class="author-card" shadow="never">
     <div class="top">
-      <el-avatar :size="56" :src="avatar" />
+      <el-avatar :size="56" :src="avatarSrc" @error="handleAvatarError">
+        {{ avatarText }}
+      </el-avatar>
       <div class="info">
         <div class="name-row">
           <span class="name">{{ name }}</span>
           <el-tag size="small" type="success" effect="plain">{{ title }}</el-tag>
         </div>
         <div class="org">{{ organization }}</div>
-        <div class="stats">
+        <div class="stats" v-if="showStats">
           <span>粉丝 {{ followers }}</span>
           <span class="dot">•</span>
           <span>视频 {{ videos }}</span>
@@ -35,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Edit } from '@element-plus/icons-vue'
 
@@ -50,18 +53,50 @@ import { Edit } from '@element-plus/icons-vue'
  * @param articles 文章数
  * @param signature 个性签名
  * @param tags 额外标签，如擅长方向
+ * @param showStats 是否展示粉丝/视频/文章统计
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   name: string
   avatar: string
   title: string
   organization: string
-  followers: string
-  videos: string
-  articles: string
+  followers?: string
+  videos?: string
+  articles?: string
   signature?: string
   tags?: string[]
-}>()
+  showStats?: boolean
+}>(), {
+  followers: '-',
+  videos: '-',
+  articles: '-',
+  showStats: true
+})
+
+const avatarFailed = ref(false)
+
+watch(() => props.avatar, () => {
+  avatarFailed.value = false
+})
+
+/**
+ * 获取头像占位文本：优先取姓名第一个字
+ * @param name 姓名
+ */
+function getAvatarText(name: string) {
+  const v = String(name || '').trim()
+  return (v ? v.slice(0, 1) : '?') as string
+}
+
+const avatarText = computed(() => getAvatarText(props.name))
+const avatarSrc = computed(() => (avatarFailed.value ? '' : (props.avatar || '')))
+
+/**
+ * 头像加载失败回调：回退为文字占位
+ */
+function handleAvatarError() {
+  avatarFailed.value = true
+}
 
 /**
  * 关注作者

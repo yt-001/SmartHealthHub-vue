@@ -41,12 +41,20 @@
               <div class="el-upload__text">拖拽或 <em>点击上传封面</em></div>
             </el-upload>
             <div v-else class="preview-container cover-preview">
-              <el-image :src="form.coverImageUrl" fit="cover" class="preview-content" :preview-src-list="[form.coverImageUrl]" />
-              <div class="preview-actions">
-                <el-upload v-if="isEditable" :show-file-list="false" :http-request="uploadCover" accept="image/*">
-                  <el-button type="primary" size="small">更换封面</el-button>
-                </el-upload>
-              </div>
+              <el-upload
+                v-if="isEditable"
+                class="cover-replace-uploader"
+                :show-file-list="false"
+                :http-request="uploadCover"
+                accept="image/*"
+              >
+                <el-image :src="form.coverImageUrl" fit="cover" class="preview-content" :preview-src-list="[]" />
+                <div class="cover-replace-mask">
+                  <el-icon><Picture /></el-icon>
+                  <span>点击更换封面</span>
+                </div>
+              </el-upload>
+              <el-image v-else :src="form.coverImageUrl" fit="cover" class="preview-content" :preview-src-list="[form.coverImageUrl]" />
             </div>
           </div>
         </el-form-item>
@@ -240,14 +248,21 @@ const submitForm = async (status: number) => {
  * 封面上传回调
  * @param opt 上传请求参数
  */
-const uploadCover = (opt: any) => {
+const uploadCover = (opt: UploadRequestOptions) => {
   const file = opt.file as File
   const blobUrl = URL.createObjectURL(file)
   form.coverImageUrl = blobUrl
   uploadFileToServer(file).then(url => {
     form.coverImageUrl = url
     opt.onSuccess && opt.onSuccess({} as any)
-  }).catch(() => opt.onError && opt.onError(new Error('上传失败')))
+  }).catch(() => {
+    const err = Object.assign(new Error('上传失败'), {
+      status: 0,
+      method: 'POST',
+      url: '/files/upload-image'
+    }) as any
+    opt.onError && opt.onError(err)
+  })
 }
 </script>
 
@@ -262,6 +277,9 @@ const uploadCover = (opt: any) => {
 .integrated-uploader :deep(.el-upload-dragger) { width: 100%; height: 100%; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed var(--el-border-color); background-color: transparent; }
 .preview-container { position: relative; width: 100%; height: 100%; min-height: 220px; background: #000; display: flex; flex-direction: column; }
 .preview-content { width: 100%; flex: 1; object-fit: cover; height: 220px; }
-.preview-actions { position: absolute; bottom: 12px; right: 12px; }
+.cover-replace-uploader { width: 100%; height: 100%; }
+.cover-replace-uploader :deep(.el-upload) { width: 100%; height: 100%; }
+.cover-replace-mask { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: #fff; font-size: 14px; background: rgba(0,0,0,0.28); opacity: 0; transition: opacity 0.18s ease; cursor: pointer; }
+.cover-replace-uploader:hover .cover-replace-mask { opacity: 1; }
 .form-actions { display: flex; gap: 16px; margin-top: 20px; }
 </style>

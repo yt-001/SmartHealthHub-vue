@@ -32,12 +32,20 @@
                 <div class="el-upload__text">拖拽或 <em>点击上传封面</em></div>
               </el-upload>
               <div v-else class="preview-container cover-preview">
-                <el-image :src="form.coverImageUrl" fit="cover" class="preview-content" :preview-src-list="[form.coverImageUrl]" />
-                <div class="preview-actions">
-                  <el-upload v-if="isEditable" :show-file-list="false" :http-request="uploadCover" accept="image/*">
-                    <el-button type="primary" size="small">更换封面</el-button>
-                  </el-upload>
-                </div>
+                <el-upload
+                  v-if="isEditable"
+                  class="cover-replace-uploader"
+                  :show-file-list="false"
+                  :http-request="uploadCover"
+                  accept="image/*"
+                >
+                  <el-image :src="form.coverImageUrl" fit="cover" class="preview-content" :preview-src-list="[]" />
+                  <div class="cover-replace-mask">
+                    <el-icon><Picture /></el-icon>
+                    <span>点击更换封面</span>
+                  </div>
+                </el-upload>
+                <el-image v-else :src="form.coverImageUrl" fit="cover" class="preview-content" :preview-src-list="[form.coverImageUrl]" />
               </div>
             </div>
           </div>
@@ -238,28 +246,42 @@ const submitForm = async (status: number) => {
  * 封面上传回调
  * @param opt 上传请求参数
  */
-const uploadCover = (opt: any) => {
+const uploadCover = (opt: UploadRequestOptions) => {
   const file = opt.file as File
   const blobUrl = URL.createObjectURL(file)
   form.coverImageUrl = blobUrl
   uploadFileToServer(file, 'image').then(url => {
     form.coverImageUrl = url
     opt.onSuccess && opt.onSuccess({} as any)
-  }).catch(() => opt.onError && opt.onError(new Error('上传失败')))
+  }).catch(() => {
+    const err = Object.assign(new Error('上传失败'), {
+      status: 0,
+      method: 'POST',
+      url: '/files/upload-image'
+    }) as any
+    opt.onError && opt.onError(err)
+  })
 }
 
 /**
  * 视频上传回调
  * @param opt 上传请求参数
  */
-const uploadVideo = (opt: any) => {
+const uploadVideo = (opt: UploadRequestOptions) => {
   const file = opt.file as File
   const blobUrl = URL.createObjectURL(file)
   form.videoUrl = blobUrl
   uploadFileToServer(file, 'video').then(url => {
     form.videoUrl = url
     opt.onSuccess && opt.onSuccess({} as any)
-  }).catch(() => opt.onError && opt.onError(new Error('上传失败')))
+  }).catch(() => {
+    const err = Object.assign(new Error('上传失败'), {
+      status: 0,
+      method: 'POST',
+      url: '/files/upload-video'
+    }) as any
+    opt.onError && opt.onError(err)
+  })
 }
 </script>
 
@@ -280,6 +302,10 @@ const uploadVideo = (opt: any) => {
 .preview-container { position: relative; width: 100%; height: 100%; min-height: 220px; background: #000; display: flex; flex-direction: column; }
 .preview-content { width: 100%; flex: 1; object-fit: contain; max-height: 360px; }
 .cover-preview .preview-content { object-fit: cover; height: 220px; }
+.cover-replace-uploader { width: 100%; height: 100%; }
+.cover-replace-uploader :deep(.el-upload) { width: 100%; height: 100%; }
+.cover-replace-mask { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: #fff; font-size: 14px; background: rgba(0,0,0,0.28); opacity: 0; transition: opacity 0.18s ease; cursor: pointer; }
+.cover-replace-uploader:hover .cover-replace-mask { opacity: 1; }
 .preview-actions { position: absolute; bottom: 12px; right: 12px; }
 .preview-actions-bar { background: #fff; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--el-border-color-light); }
 .duration-edit { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--el-text-color-regular); }

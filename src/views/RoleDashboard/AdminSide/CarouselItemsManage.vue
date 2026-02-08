@@ -81,9 +81,9 @@
         <div class="upload-area">
           <el-upload
             class="uploader"
-            :auto-upload="false"
             :show-file-list="false"
-            :on-change="onFileChange"
+            :http-request="uploadBannerImage"
+            :disabled="uploading"
             accept="image/*"
           >
             <div v-if="!form.imageUrl" class="upload-placeholder">
@@ -110,11 +110,8 @@
             </el-select>
           </el-form-item>
 
-          <!-- 第二行：图片URL / 描述 -->
-          <el-form-item class="col-left" label="图片URL" prop="imageUrl">
-            <el-input v-model="form.imageUrl" placeholder="https://..." />
-          </el-form-item>
-          <el-form-item class="col-right" label="描述" prop="description">
+          <!-- 第二行：描述（全宽） -->
+          <el-form-item class="col-full" label="描述" prop="description">
             <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
           </el-form-item>
 
@@ -147,10 +144,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { ref, reactive, watch } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules, type UploadRequestOptions } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { pageCarouselItems, createCarouselItem, updateCarouselItem, deleteCarouselItem } from '@/api/modules/carouselItems'
+import request from '@/api/http'
 
 // 数据
 const list = ref<CarouselItemsVO[]>([])
@@ -176,10 +174,12 @@ const form = reactive<CarouselItemsVO>({
 })
 const dialog = reactive({ visible: false, mode: 'create' as 'create' | 'edit' })
 const formRef = ref<FormInstance>()
+const uploading = ref(false)
+const localPreviewUrl = ref('')
 
 const rules: FormRules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-  imageUrl: [{ required: true, message: '请输入图片URL', trigger: 'blur' }],
+  imageUrl: [{ required: true, message: '请上传图片', trigger: 'change' }],
   sortOrder: [{ required: true, message: '请输入排序值', trigger: 'change' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }],
 }
@@ -225,17 +225,84 @@ function openEditDialog(row: CarouselItemsVO) {
   dialog.visible = true
 }
 
-// 文件选择回调：直接生成本地预览URL并写入 imageUrl（中文注释）
-function onFileChange(file: any) {
-  const raw = file.raw as File
-  if (!raw) return
-  const isImage = raw.type.startsWith('image/')
-  const isLt2M = raw.size / 1024 / 1024 <= 2
-  if (!isImage) { ElMessage.error('仅支持图片文件'); return }
-  if (!isLt2M) { ElMessage.error('图片大小不能超过 2MB'); return }
-  const localUrl = URL.createObjectURL(raw)
-  form.imageUrl = localUrl
+/**
+ * 上传轮播图图片到后端并回写 imageUrl
+ * @param opt el-upload 自定义上传回调参数
+ */
+const uploadBannerImage = async (opt: UploadRequestOptions) => {
+  const file = opt.file as File
+  if (!file) return
+
+  const isImage = file.type.startsWith('image/')
+  const isLt2M = file.size / 1024 / 1024 <= 2
+  if (!isImage) {
+    ElMessage.error('仅支持图片文件')
+    opt.onError?.(new Error('仅支持图片文件') as any)
+    return
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB')
+    opt.onError?.(new Error('图片大小不能超过 2MB') as any)
+    return
+  }
+
+  const prevUrl = form.imageUrl
+  if (localPreviewUrl.value) {
+    URL.revokeObjectURL(localPreviewUrl.value)
+    localPreviewUrl.value = ''
+  }
+  localPreviewUrl.value = URL.createObjectURL(file)
+  form.imageUrl = localPreviewUrl.value
+
+  uploading.value = true
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const resp = await request.post('/upload/image', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    const raw: any = resp as any
+
+    if (typeof raw?.code !== 'undefined' && raw?.code !== 200) {
+      throw new Error(raw?.msg || '上传失败')
+    }
+
+    const url = raw?.data?.url ?? raw?.data
+    if (!url || typeof url !== 'string') {
+      throw new Error('上传失败')
+    }
+
+    form.imageUrl = url
+    if (localPreviewUrl.value) {
+      URL.revokeObjectURL(localPreviewUrl.value)
+      localPreviewUrl.value = ''
+    }
+    opt.onSuccess?.({} as any)
+    ElMessage.success('图片上传成功')
+  } catch (e: any) {
+    form.imageUrl = prevUrl || ''
+    if (localPreviewUrl.value) {
+      URL.revokeObjectURL(localPreviewUrl.value)
+      localPreviewUrl.value = ''
+    }
+    ElMessage.error(e?.message || '图片上传失败')
+    opt.onError?.((e instanceof Error ? e : new Error('上传失败')) as any)
+  } finally {
+    uploading.value = false
+  }
 }
+
+watch(
+  () => dialog.visible,
+  (visible) => {
+    if (visible) return
+    if (localPreviewUrl.value) {
+      URL.revokeObjectURL(localPreviewUrl.value)
+      localPreviewUrl.value = ''
+    }
+    if ((form.imageUrl || '').startsWith('blob:')) {
+      form.imageUrl = ''
+    }
+  }
+)
 
 // 保存
 async function onSubmit() {
@@ -288,6 +355,7 @@ loadPage()
 .info-form { margin-top: 4px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; row-gap: 12px; }
 .col-left { grid-column: 1 / 2; }
 .col-right { grid-column: 2 / 3; }
+.col-full { grid-column: 1 / 3; }
 /* 文本域在右列也保持高度合适 */
 :deep(.el-textarea__inner) { min-height: 80px; }
 </style>

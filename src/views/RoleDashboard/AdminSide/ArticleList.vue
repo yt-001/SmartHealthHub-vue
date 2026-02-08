@@ -37,7 +37,6 @@
       <el-table-column label="文章" min-width="360">
         <template #default="{ row }">
           <div class="article-cell">
-            <div class="thumb"><img v-if="row.coverImageUrl" :src="row.coverImageUrl" alt="封面" /></div>
             <div class="article-meta">
               <div class="article-title">{{ row.title || '-' }}</div>
               <div class="article-sub">
