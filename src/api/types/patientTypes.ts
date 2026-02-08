@@ -47,6 +47,8 @@ export type PatientListParams = BasePageQuery<PatientListFilter>
  * 患者认证审核相关类型
  */
 export interface PatientAuthenticationDTO {
+  /** 档案ID（后端 Long） */
+  id?: string | number
   /** 身份证号（格式校验由后端/表单负责，这里仅为字符串） */
   idCard: string
   /** 血型：A/B/AB/O/RH- */
@@ -67,6 +69,14 @@ export interface PatientAuthenticationDTO {
   emergencyName?: string
   /** 紧急联系人电话 */
   emergencyPhone?: string
+
+  /** 实名认证状态 0 未通过 1 已通过 2 审核中 */
+  idCardVerified?: 0 | 1 | 2
+
+  /** 建档时间 */
+  createdAt?: string
+  /** 最后更新 */
+  updatedAt?: string
 }
 
 /** 认证列表项（用于表格展示） */

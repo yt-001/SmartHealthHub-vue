@@ -7,6 +7,13 @@
         <template #header>
           <div class="card-header">
             <span><el-icon><User /></el-icon> 基础健康信息</span>
+            <el-tag
+              v-if="healthProfile?.idCardVerified !== undefined && healthProfile?.idCardVerified !== null"
+              size="small"
+              :type="getVerifyTagType(healthProfile?.idCardVerified)"
+            >
+              {{ getVerifyText(healthProfile?.idCardVerified) }}
+            </el-tag>
             <el-button link type="primary" @click="openEditProfile">编辑</el-button>
           </div>
         </template>
@@ -192,7 +199,7 @@
     >
       <el-form :model="editForm" :rules="rules" ref="editFormRef" label-width="100px">
         <el-form-item label="身份证号" prop="idCard">
-          <el-input v-model="editForm.idCard" placeholder="请输入身份证号（建档必需）" />
+          <el-input v-model="editForm.idCard" placeholder="请输入身份证号（审核必填，不支持脱敏号）" />
         </el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -203,23 +210,22 @@
                 <el-option label="AB型" value="AB" />
                 <el-option label="O型" value="O" />
                 <el-option label="RH阴性" value="RH-" />
-                <el-option label="其他/未知" value="Unknown" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="联系电话" prop="emergencyPhone">
-              <el-input v-model="editForm.emergencyPhone" placeholder="紧急联系电话" />
+              <el-form-item label="紧急联系电话" prop="emergencyPhone">
+              <el-input v-model="editForm.emergencyPhone" placeholder="请输入手机号（审核必填，不回显历史号码）" />
             </el-form-item>
           </el-col>
         </el-row>
         
         <el-form-item label="紧急联系人" prop="emergencyName">
-          <el-input v-model="editForm.emergencyName" placeholder="紧急联系人姓名" />
+          <el-input v-model="editForm.emergencyName" placeholder="请输入紧急联系人姓名（审核必填）" />
         </el-form-item>
         
         <el-form-item label="居住地址" prop="address">
-          <el-input v-model="editForm.address" placeholder="请输入常住地址" />
+          <el-input v-model="editForm.address" placeholder="请输入常住地址（审核必填）" />
         </el-form-item>
 
         <el-form-item label="过敏史" prop="allergyHistory">
@@ -230,26 +236,26 @@
           <el-input v-model="editForm.chronicDisease" type="textarea" :rows="2" placeholder="如有慢性病史请详细说明" />
         </el-form-item>
 
-        <el-divider content-position="left">当前状况（选填）</el-divider>
+          <el-divider content-position="left">当前状况（审核必填）</el-divider>
 
-        <el-form-item label="当前症状">
+          <el-form-item label="当前症状" prop="currentSymptoms">
           <el-input v-model="editForm.currentSymptoms" type="textarea" :rows="2" placeholder="描述当前身体不适症状" />
         </el-form-item>
         
         <!-- 治疗方案和医嘱建议通常由医生填写，但用户也可以备注 -->
-        <el-form-item label="当前治疗">
-          <el-input v-model="editForm.currentPlan" type="textarea" :rows="2" placeholder="正在进行的治疗或用药情况" />
+          <el-form-item label="当前方案" prop="currentPlan">
+          <el-input v-model="editForm.currentPlan" type="textarea" :rows="2" placeholder="正在进行的治疗或用药情况（审核必填）" />
         </el-form-item>
         
-        <el-form-item label="医嘱建议">
-          <el-input v-model="editForm.nextStep" type="textarea" :rows="2" placeholder="医生建议或后续计划" />
+          <el-form-item label="下一步建议" prop="nextStep">
+          <el-input v-model="editForm.nextStep" type="textarea" :rows="2" placeholder="后续计划（复诊/检查等）（审核必填）" />
         </el-form-item>
 
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="editLoading" @click="saveProfile">保存</el-button>
+          <el-button type="primary" :loading="editLoading" @click="saveProfile">提交审核</el-button>
         </span>
       </template>
     </el-dialog>
@@ -309,6 +315,15 @@ const rules = {
   ],
   address: [
     { required: true, message: '请输入居住地址', trigger: 'blur' }
+  ],
+  currentSymptoms: [
+    { required: true, message: '请输入当前症状', trigger: 'blur' }
+  ],
+  currentPlan: [
+    { required: true, message: '请输入当前方案', trigger: 'blur' }
+  ],
+  nextStep: [
+    { required: true, message: '请输入下一步建议', trigger: 'blur' }
   ]
 }
 
@@ -452,8 +467,13 @@ function exportReport() {
 
 function openEditProfile() {
   if (healthProfile.value) {
+    const rawIdCard = String(healthProfile.value.idCard || '')
+    const rawEmergencyPhone = String(healthProfile.value.emergencyPhone || '')
+    const idCardForEdit = rawIdCard.includes('*') ? '' : rawIdCard
+    const emergencyPhoneForEdit = rawEmergencyPhone.includes('*') ? '' : rawEmergencyPhone
+
     Object.assign(editForm, {
-      idCard: healthProfile.value.idCard || '',
+      idCard: idCardForEdit,
       bloodType: healthProfile.value.bloodType || '',
       allergyHistory: healthProfile.value.allergyHistory || '',
       chronicDisease: healthProfile.value.chronicDisease || '',
@@ -462,7 +482,7 @@ function openEditProfile() {
       nextStep: healthProfile.value.nextStep || '',
       address: healthProfile.value.address || '',
       emergencyName: healthProfile.value.emergencyName || '',
-      emergencyPhone: healthProfile.value.emergencyPhone || ''
+      emergencyPhone: emergencyPhoneForEdit
     })
   } else {
     // 重置表单
@@ -481,7 +501,7 @@ async function saveProfile() {
       try {
         const res = await savePatientProfile(store.userInfo!.id, editForm)
         if (res.code === 200) {
-          ElMessage.success('保存成功')
+          ElMessage.success('提交成功，等待审核')
           editDialogVisible.value = false
           fetchProfile() // 刷新数据
         } else {
@@ -498,6 +518,18 @@ async function saveProfile() {
       console.log('error submit!', fields)
     }
   })
+}
+
+function getVerifyText(v?: number) {
+  if (v === 1) return '已通过'
+  if (v === 2) return '审核中'
+  return '未通过'
+}
+
+function getVerifyTagType(v?: number) {
+  if (v === 1) return 'success'
+  if (v === 2) return 'warning'
+  return 'danger'
 }
 </script>
 

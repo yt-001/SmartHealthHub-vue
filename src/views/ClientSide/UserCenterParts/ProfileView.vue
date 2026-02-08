@@ -35,6 +35,15 @@
     <!-- 操作栏 -->
     <div class="action-bar">
       <el-button type="primary" plain round @click="openEditDialog">编辑基本信息</el-button>
+      <el-button
+        v-if="showDoctorAuthEntry"
+        type="success"
+        plain
+        round
+        @click="openDoctorAuthDialog"
+      >
+        医生注册
+      </el-button>
     </div>
 
     <!-- 编辑信息弹窗 -->
@@ -79,6 +88,67 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 医生认证弹窗 -->
+    <el-dialog
+      v-model="doctorVisible"
+      title="医生认证信息"
+      width="560px"
+      append-to-body
+      destroy-on-close
+    >
+      <el-form :model="doctorForm" label-width="96px">
+        <el-form-item label="科室">
+          <el-select v-model="doctorForm.deptId" placeholder="请选择科室" style="width: 100%">
+            <el-option
+              v-for="opt in deptOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="职称">
+          <el-select v-model="doctorForm.title" placeholder="请选择职称" style="width: 100%">
+            <el-option v-for="t in titleOptions" :key="t" :label="t" :value="t" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="执业证号">
+          <el-input v-model="doctorForm.qualificationNo" placeholder="请输入医师执业证号" />
+        </el-form-item>
+        <el-form-item label="诊室编号">
+          <el-input v-model="doctorForm.officeRoom" placeholder="请输入诊室编号" />
+        </el-form-item>
+        <el-form-item label="擅长领域">
+          <el-input
+            v-model="doctorForm.specialty"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入擅长领域（可用逗号分隔）"
+          />
+        </el-form-item>
+        <el-form-item label="个人简介">
+          <el-input
+            v-model="doctorForm.bio"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入个人简介"
+          />
+        </el-form-item>
+        <el-form-item label="工作班次">
+          <el-input
+            v-model="doctorForm.workShift"
+            placeholder="例如：周一上午 周三下午"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="doctorVisible = false">取消</el-button>
+          <el-button type="success" @click="submitDoctorAuth">提交认证</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -86,7 +156,7 @@
 import { computed, ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { updateProfile } from '@/api/modules/user'
+import { submitDoctorAuthentication, updateProfile } from '@/api/modules/user'
 
 const store = useUserStore()
 
@@ -99,6 +169,28 @@ const editForm = reactive({
   gender: '男',
   birthDate: ''
 })
+
+// 医生认证弹窗状态
+const doctorVisible = ref(false)
+const doctorForm = reactive({
+  deptId: null as number | null,
+  title: '',
+  qualificationNo: '',
+  specialty: '',
+  bio: '',
+  workShift: '',
+  officeRoom: ''
+})
+
+const deptOptions = [
+  { label: '内科', value: 1 },
+  { label: '外科', value: 2 },
+  { label: '儿科', value: 3 },
+  { label: '妇产科', value: 4 },
+  { label: '急诊科', value: 5 },
+  { label: '口腔科', value: 6 }
+]
+const titleOptions = ['主任医师', '副主任医师', '主治医师', '住院医师']
 
 /** 获取角色文案 */
 const roleText = computed(() => {
@@ -119,6 +211,14 @@ const roleTagType = computed(() => {
   if (r === 0 || r === 'admin') return 'danger'
   if (r === 1 || r === 'doctor') return 'success'
   return 'primary'
+})
+
+/** 是否展示医生认证入口 */
+const showDoctorAuthEntry = computed(() => {
+  const info = store.userInfo
+  if (!info) return false
+  const r = info.role
+  return !(r === 0 || r === 'admin')
 })
 
 /**
@@ -189,6 +289,77 @@ async function submitEdit() {
     ElMessage.error('更新失败，请稍后重试')
   }
 }
+
+/**
+ * 打开医生认证弹窗
+ */
+function openDoctorAuthDialog() {
+  if (!store.userInfo?.id) {
+    ElMessage.warning('用户信息未加载，请稍后重试')
+    return
+  }
+  doctorVisible.value = true
+}
+
+/**
+ * 提交医生认证
+ */
+async function submitDoctorAuth() {
+  try {
+    const userId = store.userInfo?.id
+    if (!userId) {
+      throw new Error('User ID is missing')
+    }
+    if (!doctorForm.deptId) {
+      ElMessage.warning('请选择科室')
+      return
+    }
+    if (!doctorForm.title.trim()) {
+      ElMessage.warning('请选择职称')
+      return
+    }
+    if (!doctorForm.qualificationNo.trim()) {
+      ElMessage.warning('请输入执业证号')
+      return
+    }
+    if (!doctorForm.officeRoom.trim()) {
+      ElMessage.warning('请输入诊室编号')
+      return
+    }
+    if (!doctorForm.specialty.trim()) {
+      ElMessage.warning('请输入擅长领域')
+      return
+    }
+    if (!doctorForm.bio.trim()) {
+      ElMessage.warning('请输入个人简介')
+      return
+    }
+    if (!doctorForm.workShift.trim()) {
+      ElMessage.warning('请输入工作班次')
+      return
+    }
+
+    const payload = {
+      userId,
+      deptId: doctorForm.deptId,
+      title: doctorForm.title,
+      qualificationNo: doctorForm.qualificationNo,
+      officeRoom: doctorForm.officeRoom,
+      specialty: doctorForm.specialty,
+      bio: doctorForm.bio,
+      workShift: doctorForm.workShift
+    }
+
+    await submitDoctorAuthentication(payload)
+    await store.check()
+    ElMessage.success('提交成功，等待管理员审核')
+    doctorVisible.value = false
+  } catch (error) {
+    console.error('Submit doctor auth failed:', error)
+    ElMessage.error('提交失败，请稍后重试')
+  }
+}
+
 </script>
 
 <style scoped>
@@ -258,5 +429,7 @@ async function submitEdit() {
 .action-bar {
   padding-top: 16px;
   border-top: 1px solid #ebeef5;
+  display: flex;
+  gap: 12px;
 }
 </style>

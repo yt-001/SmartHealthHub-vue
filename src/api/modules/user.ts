@@ -61,3 +61,11 @@ export const updateProfile = async (data: Record<string, any>): Promise<ApiRespo
 export const register = async (data: any): Promise<ApiResponse<any>> => {
   return request.post('/auth/register', data) as Promise<ApiResponse<any>>
 }
+
+/**
+ * 医生认证申请（普通用户也可发起，后端会自动切换角色并进入待审核状态）
+ * @param data 认证信息
+ */
+export const submitDoctorAuthentication = async (data: any): Promise<ApiResponse<any>> => {
+  return request.post('/auth/doctor-authenticate', data) as Promise<ApiResponse<any>>
+}

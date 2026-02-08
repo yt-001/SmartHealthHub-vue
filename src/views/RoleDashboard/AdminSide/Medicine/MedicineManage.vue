@@ -157,8 +157,66 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="封面图URL" prop="coverImageUrl">
-          <el-input v-model="formData.coverImageUrl" placeholder="请输入图片URL" />
+        <el-form-item label="封面图片" prop="coverImageUrl">
+          <div class="cover-upload-wrapper">
+            <el-upload
+              v-if="!formData.coverImageUrl"
+              class="cover-uploader"
+              :show-file-list="false"
+              :http-request="selectCover"
+              accept="image/*"
+              drag
+            >
+              <el-icon class="el-icon--upload"><Picture /></el-icon>
+              <div class="el-upload__text">
+                拖拽或 <em>点击上传封面</em>
+              </div>
+            </el-upload>
+
+            <div v-else class="cover-preview">
+              <el-image
+                class="cover-preview-img"
+                :src="formData.coverImageUrl"
+                fit="cover"
+                :preview-src-list="[formData.coverImageUrl]"
+              />
+              <div class="cover-actions">
+                <el-upload :show-file-list="false" :http-request="selectCover" accept="image/*">
+                  <el-button type="primary" size="small">更换封面</el-button>
+                </el-upload>
+                <el-button size="small" @click="removeCover">移除</el-button>
+              </div>
+            </div>
+          </div>
+        </el-form-item>
+        <el-form-item label="图片" prop="images">
+          <div class="images-upload-wrapper">
+            <el-upload
+              v-if="!imageItems.length"
+              class="images-uploader"
+              :show-file-list="false"
+              :http-request="selectImages"
+              accept="image/*"
+            >
+              <el-button type="primary" plain>上传图片</el-button>
+            </el-upload>
+
+            <div v-else class="images-preview">
+              <el-image
+                class="images-preview-img"
+                :src="imageItems[0].url"
+                fit="cover"
+                :preview-src-list="[imageItems[0].url]"
+                preview-teleported
+              />
+              <div class="images-actions">
+                <el-upload :show-file-list="false" :http-request="selectImages" accept="image/*">
+                  <el-button type="primary" size="small">更换图片</el-button>
+                </el-upload>
+                <el-button size="small" @click="removeImage(0)">移除</el-button>
+              </div>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="是否处方药" prop="isPrescription">
           <el-radio-group v-model="formData.isPrescription">
@@ -228,7 +286,10 @@
 import { ref, reactive, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import type { UploadRequestOptions } from 'element-plus'
+import { Picture } from '@element-plus/icons-vue'
 import { medicineApi } from '@/api'
+import request from '@/api/http'
 import type {
   MedicineVO,
   MedicineCreateDTO,
@@ -287,6 +348,9 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
 const formRef = ref<FormInstance>()
+const coverFile = ref<File | null>(null)
+const coverBlobUrl = ref<string>('')
+const imageItems = ref<Array<{ url: string; file?: File }>>([])
 
 // 表单数据
 const formData = reactive<
@@ -315,6 +379,106 @@ const rules = reactive<FormRules>({
   name: [{ required: true, message: '请输入药品名称', trigger: 'blur' }],
   price: [{ required: true, message: '请输入价格', trigger: 'blur' }]
 })
+
+/**
+ * 设置封面预览（使用 blob URL），并记录待上传文件
+ * @param file 用户选择的图片文件
+ */
+const setCoverPreview = (file: File) => {
+  if (coverBlobUrl.value) {
+    URL.revokeObjectURL(coverBlobUrl.value)
+    coverBlobUrl.value = ''
+  }
+  coverFile.value = file
+  coverBlobUrl.value = URL.createObjectURL(file)
+  formData.coverImageUrl = coverBlobUrl.value
+}
+
+/**
+ * 选择封面回调：仅做本地预览，不立即上传
+ * @param opt 上传组件回调参数
+ */
+const selectCover = (opt: UploadRequestOptions) => {
+  const file = opt.file as File
+  setCoverPreview(file)
+  opt.onSuccess && opt.onSuccess({} as any)
+}
+
+/**
+ * 移除封面：清空预览与待上传文件
+ */
+const removeCover = () => {
+  coverFile.value = null
+  if (coverBlobUrl.value) {
+    URL.revokeObjectURL(coverBlobUrl.value)
+    coverBlobUrl.value = ''
+  }
+  formData.coverImageUrl = ''
+}
+
+/**
+ * 上传图片文件到服务器并返回可访问URL
+ * @param file 图片文件
+ */
+const uploadImageToServer = async (file: File): Promise<string> => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const resp = await request.post('/upload/image', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+  const raw: any = resp as any
+  if (typeof raw?.code !== 'undefined' && raw?.code !== 200) {
+    throw new Error(raw?.msg || '上传失败')
+  }
+  return raw?.data?.url ?? raw?.data
+}
+
+/**
+ * 选择图片（单张）：仅做本地预览，不立即上传
+ * @param opt 上传组件回调参数
+ */
+const selectImages = (opt: UploadRequestOptions) => {
+  const file = opt.file as File
+  const blobUrl = URL.createObjectURL(file)
+  const prev = imageItems.value[0]
+  if (prev && (prev.url || '').startsWith('blob:')) {
+    URL.revokeObjectURL(prev.url)
+  }
+  imageItems.value = [{ url: blobUrl, file }]
+  opt.onSuccess && opt.onSuccess({} as any)
+}
+
+/**
+ * 移除图片：清空预览与待上传文件
+ * @param idx 图片索引（当前仅使用 0）
+ */
+const removeImage = (idx: number) => {
+  const item = imageItems.value[idx]
+  if (!item) return
+  if ((item.url || '').startsWith('blob:')) {
+    URL.revokeObjectURL(item.url)
+  }
+  imageItems.value.splice(idx, 1)
+}
+
+watch(
+  () => dialogVisible.value,
+  (visible) => {
+    if (visible) return
+    coverFile.value = null
+    if (coverBlobUrl.value) {
+      URL.revokeObjectURL(coverBlobUrl.value)
+      coverBlobUrl.value = ''
+    }
+    if ((formData.coverImageUrl || '').startsWith('blob:')) {
+      formData.coverImageUrl = ''
+    }
+    for (const item of imageItems.value) {
+      if ((item.url || '').startsWith('blob:')) {
+        URL.revokeObjectURL(item.url)
+      }
+    }
+    imageItems.value = []
+  }
+)
 
 // 获取列表
 const fetchData = async () => {
@@ -515,6 +679,20 @@ const onEdit = (row: MedicineVO) => {
   } else {
     formData.tagsList = []
   }
+  if (row.images) {
+    try {
+      const parsed = JSON.parse(row.images)
+      const firstUrl = Array.isArray(parsed)
+        ? (parsed.find((u: any) => typeof u === 'string' && u.trim().length > 0) as string | undefined)
+        : undefined
+      imageItems.value = firstUrl ? [{ url: firstUrl }] : []
+    } catch (error) {
+      console.error('解析图片JSON失败', error)
+      imageItems.value = []
+    }
+  } else {
+    imageItems.value = []
+  }
   // 编辑时也刷新下拉数据
   loadTagOptions()
   loadRecommendationLevelOptions()
@@ -535,6 +713,17 @@ const resetForm = () => {
    // 重置标签和推荐级别
   formData.tagsList = []
   formData.recommendationLevelName = ''
+  coverFile.value = null
+  if (coverBlobUrl.value) {
+    URL.revokeObjectURL(coverBlobUrl.value)
+    coverBlobUrl.value = ''
+  }
+  for (const item of imageItems.value) {
+    if ((item.url || '').startsWith('blob:')) {
+      URL.revokeObjectURL(item.url)
+    }
+  }
+  imageItems.value = []
   if (formRef.value) {
     formRef.value.clearValidate()
   }
@@ -547,13 +736,36 @@ const onSubmit = async () => {
     if (valid) {
       submitting.value = true
       try {
+        if (coverFile.value) {
+          const realCoverUrl = await uploadImageToServer(coverFile.value)
+          coverFile.value = null
+          if (coverBlobUrl.value) {
+            URL.revokeObjectURL(coverBlobUrl.value)
+            coverBlobUrl.value = ''
+          }
+          formData.coverImageUrl = realCoverUrl
+        }
+        const resolvedImages: string[] = []
+        for (const item of imageItems.value) {
+          if (item.file) {
+            const realUrl = await uploadImageToServer(item.file)
+            if ((item.url || '').startsWith('blob:')) {
+              URL.revokeObjectURL(item.url)
+            }
+            item.url = realUrl
+            item.file = undefined
+          }
+          if (typeof item.url === 'string' && item.url.trim().length > 0) {
+            resolvedImages.push(item.url)
+          }
+        }
         const payload: any = {
           name: formData.name,
           commonName: formData.commonName,
           brandName: (formData as any).brandName,
           description: formData.description,
           coverImageUrl: formData.coverImageUrl,
-          images: (formData as any).images,
+          images: JSON.stringify(resolvedImages),
           specs: (formData as any).specs,
           // tags 字段：将标签数组序列化为 JSON 字符串
           tags: JSON.stringify(
@@ -589,7 +801,8 @@ const onSubmit = async () => {
         fetchData()
       } catch (error) {
         console.error('提交失败', error)
-        ElMessage.error('操作失败')
+        const msg = (error as any)?.message || '操作失败'
+        ElMessage.error(msg)
       } finally {
         submitting.value = false
       }
@@ -638,5 +851,64 @@ onBeforeUnmount(() => {
 }
 :deep(.el-table__body-wrapper) {
   overscroll-behavior: contain;
+}
+
+.cover-upload-wrapper {
+  width: 100%;
+}
+
+.cover-uploader {
+  width: 100%;
+}
+
+.cover-uploader :deep(.el-upload),
+.cover-uploader :deep(.el-upload-dragger) {
+  width: 100%;
+}
+
+.cover-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cover-preview-img {
+  width: 180px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f7fa;
+  flex: none;
+}
+
+.cover-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.images-upload-wrapper {
+  width: 100%;
+}
+
+.images-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.images-preview-img {
+  width: 140px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f7fa;
+  flex: none;
+}
+
+.images-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 </style>
