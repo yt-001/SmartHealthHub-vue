@@ -231,7 +231,7 @@ const submitForm = async (status: number) => {
         form.category = ''
       }
 
-      const updateData = { ...form, id: Number(articleId.value) }
+      const updateData = { ...form, id: String(articleId.value) }
       await updateArticle(updateData as any)
       ElMessage.success('文章修改成功！')
       router.push('/portal/admin/article-list')

@@ -21,6 +21,7 @@
             type="text"
             placeholder="姓名"
             v-model="signupName"
+            maxlength="20"
           />
         </div>
         <div class="form__group">
@@ -268,6 +269,12 @@ const onSignUp = async () => {
     ElMessage.error('请填写完整注册信息');
     return;
   }
+
+  const usernameTrim = String(signupName.value).trim()
+  if (usernameTrim.length < 3 || usernameTrim.length > 20) {
+    ElMessage.error('用户名长度必须在3-20个字符之间')
+    return
+  }
   
   const phoneReg = /^1[3-9]\d{9}$/;
   const emailReg = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -287,8 +294,8 @@ const onSignUp = async () => {
   try {
     // 构造注册 DTO
     const registerData = {
-      username: signupName.value, // 使用姓名作为用户名
-      realName: signupName.value,
+      username: usernameTrim, // 使用姓名作为用户名
+      realName: usernameTrim,
       password: signupPassword.value,
       confirmPassword: signupPassword.value, // 默认确认密码一致
       role: '2', // 默认为患者

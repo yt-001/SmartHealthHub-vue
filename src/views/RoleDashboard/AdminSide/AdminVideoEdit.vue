@@ -229,7 +229,7 @@ const submitForm = async (status: number) => {
         form.category = ''
       }
       form.status = status
-      const updateData = { ...form, id: Number(videoId.value) }
+      const updateData = { ...form, id: String(videoId.value) }
       await updateVideo(updateData as any)
       ElMessage.success('视频修改成功！')
       router.push('/portal/admin/video-list')

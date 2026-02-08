@@ -66,7 +66,7 @@ const loadDetail = async () => {
   loading.value = true
   const start = Date.now()
   try {
-    const { data } = await getDoctorProfileId(Number(id))
+    const { data } = await getDoctorProfileId(id)
     const elapsed = Date.now() - start
     if (elapsed < 1000) await sleep(1000 - elapsed)
     detail.value = data || {}
