@@ -15,7 +15,6 @@ const adminMenu: MenuItem[] = [
     title: "数据管理",
     icon: "DataBoard",
     children: [
-      { title: "仪表盘", path: "/portal/admin/dashboard", icon: "DataBoard" },
       { title: "医院情况", path: "/portal/admin/hospital-overview", icon: "OfficeBuilding" },
     ],
   },

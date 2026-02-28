@@ -40,6 +40,13 @@
             v-model="signupPassword"
           />
         </div>
+        <div class="form__group">
+          <input
+            type="password"
+            placeholder="再次输入密码"
+            v-model="signupConfirmPassword"
+          />
+        </div>
 
         <button type="submit">注册</button>
       </form>
@@ -148,6 +155,7 @@ const loginRole = ref<'user' | 'admin' | 'doctor'>('user');
 const signupName = ref('');
 const signupAccount = ref('');
 const signupPassword = ref('');
+const signupConfirmPassword = ref('');
 
 // 切换：添加/移除右侧面板激活态
 const toggleOverlay = () => {
@@ -265,7 +273,7 @@ const onSignIn = async () => {
 
 // 注册提交（在此对接你的 API）
 const onSignUp = async () => {
-  if (!signupName.value || !signupAccount.value || !signupPassword.value) {
+  if (!signupName.value || !signupAccount.value || !signupPassword.value || !signupConfirmPassword.value) {
     ElMessage.error('请填写完整注册信息');
     return;
   }
@@ -273,6 +281,11 @@ const onSignUp = async () => {
   const usernameTrim = String(signupName.value).trim()
   if (usernameTrim.length < 3 || usernameTrim.length > 20) {
     ElMessage.error('用户名长度必须在3-20个字符之间')
+    return
+  }
+
+  if (signupPassword.value !== signupConfirmPassword.value) {
+    ElMessage.error('两次输入的密码不一致')
     return
   }
   
@@ -297,7 +310,7 @@ const onSignUp = async () => {
       username: usernameTrim, // 使用姓名作为用户名
       realName: usernameTrim,
       password: signupPassword.value,
-      confirmPassword: signupPassword.value, // 默认确认密码一致
+      confirmPassword: signupConfirmPassword.value,
       role: '2', // 默认为患者
       phone: phone,
       email: email,

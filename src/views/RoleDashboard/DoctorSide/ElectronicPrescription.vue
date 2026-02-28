@@ -29,10 +29,10 @@
                 :label="getPatientLabel(item)"
                 :value="item.patientId"
               >
-                <span style="float: left">{{ item.patientName }}</span>
-                <span style="float: right; color: #8492a6; font-size: 13px" v-if="item.appointmentTime">
-                  {{ formatTime(item.appointmentTime) }}
-                </span>
+                <div :class="['patient-option', item.hasTodayAppointment ? 'patient-option--today' : '']">
+                  <span class="patient-option__name">{{ item.patientName }}</span>
+                  <el-tag v-if="item.hasTodayAppointment" size="small" type="success" class="patient-option__tag">已预约</el-tag>
+                </div>
               </el-option>
             </el-select>
           </div>
@@ -195,6 +195,7 @@ const patientOptions = ref<any[]>([])
 const patientLoading = ref(false)
 const currentPatient = ref<any>(null)
 const appointments = ref<any[]>([])
+const todayAppointmentByPatientId = ref<Record<string, { status: number; scheduleId: number }>>({})
 
 // 处方相关
 const prescriptionList = ref<any[]>([])
@@ -228,22 +229,62 @@ onMounted(() => {
   fetchMedicineTree()
 })
 
-// 获取预约列表（今日待诊）
+function formatDateYmd(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function calculateAge(birthDate: string | null | undefined) {
+  if (!birthDate) return '未知'
+  const dob = new Date(birthDate)
+  if (Number.isNaN(dob.getTime())) return '未知'
+  const today = new Date()
+  let age = today.getFullYear() - dob.getFullYear()
+  const m = today.getMonth() - dob.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--
+  return age >= 0 ? age : '未知'
+}
+
+// 获取预约列表（今日）
 async function fetchAppointments() {
   if (!doctorId.value) return
   try {
-    // 调用 /appointments/doctor/{doctorId}/page
-    const res: any = await request.post(`/appointments/doctor/${doctorId.value}/page`, {
-      page: 1,
-      pageSize: 50,
-      query: {
-        // status: 0 // 待就诊，暂时获取所有状态
-      }
+    const todayStr = formatDateYmd(new Date())
+    const scheduleRes: any = await request.post('/schedule/calendar', {
+      doctorId: doctorId.value,
+      startDate: todayStr,
+      endDate: todayStr
     })
-    if (res.code === 200) {
-      appointments.value = res.data.records || []
-      updateOptionsFromAppointments()
-    }
+    const todayScheduleIds = new Set<number>(
+      (scheduleRes?.data || []).map((s: any) => Number(s.id)).filter((v: any) => Number.isFinite(v))
+    )
+
+    const res: any = await request.post(`/appointments/doctor/${doctorId.value}/page`, {
+      pageNum: 1,
+      pageSize: 2000,
+      query: {}
+    })
+    if (res.code !== 200) return
+    const records = res.data?.list || res.data?.records || []
+    const todayAppointments = records.filter((a: any) => {
+      const sid = Number(a.scheduleId)
+      const st = Number(a.status)
+      return todayScheduleIds.has(sid) && st !== 3
+    })
+
+    const map: Record<string, { status: number; scheduleId: number }> = {}
+    todayAppointments.forEach((a: any) => {
+      const pid = a.patientId
+      if (pid === null || pid === undefined) return
+      const key = String(pid)
+      if (map[key]) return
+      map[key] = { status: Number(a.status), scheduleId: Number(a.scheduleId) }
+    })
+    todayAppointmentByPatientId.value = map
+    appointments.value = todayAppointments
+    updateOptionsFromAppointments()
   } catch (error) {
     console.error('获取预约失败', error)
   }
@@ -276,7 +317,8 @@ async function searchPatients(query: string) {
           id: item.id, // 这里 id 即为 userId
           patientId: item.id,
           patientName: item.realName || item.username,
-          appointmentTime: null, // 搜索出来的患者可能没有预约
+          hasTodayAppointment: Boolean(todayAppointmentByPatientId.value[String(item.id)]),
+          appointmentStatus: todayAppointmentByPatientId.value[String(item.id)]?.status,
           phone: item.phone,
           gender: item.gender === 'M' ? '男' : (item.gender === 'F' ? '女' : '未知'),
           age: item.age || '未知' // 假设后端返回了 age，或者需要根据 birthDate 计算
@@ -298,10 +340,11 @@ function updateOptionsFromAppointments() {
     id: item.id,
     patientId: item.patientId,
     patientName: item.patientName,
-    appointmentTime: item.appointmentTime,
+    hasTodayAppointment: true,
+    appointmentStatus: item.status,
     phone: item.patientPhone,
-    gender: item.patientGender,
-    age: item.patientAge
+    gender: item.patientGender === 'M' ? '男' : (item.patientGender === 'F' ? '女' : '未知'),
+    age: calculateAge(item.patientBirthDate)
   }))
 }
 
@@ -326,10 +369,7 @@ function selectPatientFromList(item: any) {
 }
 
 function getPatientLabel(item: any) {
-  if (item.appointmentTime) {
-    return `${item.patientName} (预约: ${formatTime(item.appointmentTime)})`
-  }
-  return `${item.patientName} (无预约)`
+  return `${item.patientName}`
 }
 
 // 格式化时间
@@ -582,5 +622,26 @@ function resetForm() {
   padding: 20px;
   background-color: #f5f7fa;
   border-radius: 4px;
+}
+.patient-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.patient-option__name {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.patient-option__tag {
+  flex: 0 0 auto;
+}
+.patient-option--today .patient-option__name {
+  font-weight: 600;
+  color: #1f8a3b;
 }
 </style>

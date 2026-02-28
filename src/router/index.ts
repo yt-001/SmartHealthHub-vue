@@ -50,7 +50,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'admin',
         name: 'AdminHome',
-        component: Error404,
+        redirect: '/portal/admin/hospital-overview',
         meta: { title: '管理员首页', roles: ['admin'] }
       },
       {
@@ -61,7 +61,7 @@ const routes: RouteRecordRaw[] = [
       },
 
       // 管理员端菜单占位子路由（相对路径，渲染到 RoleDashboard 的 router-view）
-      { path: 'admin/dashboard', component: Error404, meta: { roles: ['admin'], title: '仪表盘' } },
+      { path: 'admin/dashboard', redirect: '/portal/admin/hospital-overview', meta: { roles: ['admin'], title: '仪表盘' } },
       { path: 'admin/hospital-overview', component: () => import('@/views/RoleDashboard/AdminSide/HospitalOverview.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医院情况' } },
 
       { path: 'admin/doctor-manage', component: () => import('@/views/RoleDashboard/AdminSide/DoctorManage.vue').then(m => m.default || m).catch(() => Error404), meta: { roles: ['admin'], title: '医生管理' } },

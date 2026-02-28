@@ -117,8 +117,8 @@
 
             <!-- 编辑模式 -->
             <template v-else-if="mode === 'edit'">
-               <el-button type="primary" @click="submitForm(1)" :loading="loading" size="large">
-                  <el-icon class="el-icon--left"><Promotion /></el-icon>立即发布
+               <el-button type="primary" @click="submitForm(3)" :loading="loading" size="large">
+                  <el-icon class="el-icon--left"><Promotion /></el-icon>提交审核
                </el-button>
                <el-button @click="submitForm(form.status ?? 0)" :loading="loading" size="large">
                   <el-icon class="el-icon--left"><Document /></el-icon>保存修改
@@ -127,8 +127,8 @@
 
             <!-- 创建模式 -->
             <template v-else>
-               <el-button type="primary" @click="submitForm(1)" :loading="loading" size="large">
-                  <el-icon class="el-icon--left"><Promotion /></el-icon>立即发布
+               <el-button type="primary" @click="submitForm(3)" :loading="loading" size="large">
+                  <el-icon class="el-icon--left"><Promotion /></el-icon>提交审核
                </el-button>
                <el-button @click="submitForm(0)" size="large">
                   <el-icon class="el-icon--left"><Document /></el-icon>存为草稿
@@ -348,10 +348,10 @@ const submitForm = async (status: number) => {
         if (mode.value === 'edit' && articleId.value) {
            const updateData = { ...form, id: articleId.value }
            await updateArticle(updateData)
-           ElMessage.success('文章修改成功！')
+           ElMessage.success(status === 3 ? '文章已提交审核' : '文章修改成功！')
         } else {
            await createArticle(form)
-           ElMessage.success(status === 1 ? '文章发布成功！需等待管理员审核' : '文章已保存为草稿')
+           ElMessage.success(status === 3 ? '文章已提交审核' : '文章已保存为草稿')
         }
         
         // 4. 标记为正在提交
