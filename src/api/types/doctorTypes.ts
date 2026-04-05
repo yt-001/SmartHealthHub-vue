@@ -7,8 +7,10 @@ import type { BasePageQuery } from '../types'
 
 /** 医生基础信息（列表项） */
 export interface DoctorItem {
-  /** 医生ID */
+  /** 医生档案ID */
   id: string
+  /** 用户ID（关联users.id，用于排班查询） */
+  userId: string
   /** 真实姓名 */
   realName: string
   /** 手机号 */

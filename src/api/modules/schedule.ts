@@ -59,8 +59,8 @@ export const fetchScheduleCalendar = (month: string): Promise<ApiResponse<Doctor
  * 返回：ApiResponse<DoctorScheduleItem[]>
  */
 export const fetchScheduleCalendarByRange = (query: DoctorScheduleCalendarQuery): Promise<ApiResponse<DoctorScheduleItem[]>> => {
-  // 将可选字段作为查询参数传入
-  return request.post('/schedule/calendar', { params: query }) as Promise<ApiResponse<DoctorScheduleItem[]>>
+  // 后端 @RequestBody 需要请求体，直接传递 query 对象
+  return request.post('/schedule/calendar', query) as Promise<ApiResponse<DoctorScheduleItem[]>>
 }
 
 /**

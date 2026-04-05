@@ -233,8 +233,10 @@ async function handleBook(doctor: TeamDoctor) {
     ElMessage.warning('请先登录')
     return
   }
-  
-  selectedDoctorId.value = Number(doctor.id)
+
+  // 使用 userId 查询排班（doctorId 对应 users.id）
+  const doctorIdForSchedule = doctor.userId || doctor.id
+  selectedDoctorId.value = doctorIdForSchedule
 
   try {
     const today = new Date()
@@ -244,7 +246,7 @@ async function handleBook(doctor: TeamDoctor) {
     const { data } = await fetchScheduleCalendarByRange({
       startDate,
       endDate,
-      doctorId: doctor.id
+      doctorId: doctorIdForSchedule
     } as any)
 
     const list = data || []
