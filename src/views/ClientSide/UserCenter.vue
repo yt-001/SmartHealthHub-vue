@@ -348,7 +348,7 @@ const currentView = computed(() => {
   position: relative;
   height: 240px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  background: linear-gradient(135deg, #059669, #10b981);
   margin-bottom: -60px; /* 让内容卡片上浮覆盖 */
   display: flex;
   align-items: center;
@@ -356,11 +356,7 @@ const currentView = computed(() => {
 }
 
 .bg-overlay {
-  position: absolute;
-  inset: 0;
-  background: url('/src/assets/PersonalHome-Page.png') center/cover no-repeat;
-  opacity: 0.15;
-  mix-blend-mode: overlay;
+  display: none; /* 隐藏背景图片覆盖层 */
 }
 
 .hero-content {

@@ -74,7 +74,6 @@ const doctorMenu: MenuItem[] = [
     title: "个人中心",
     icon: "UserFilled",
     children: [
-      { title: "医生个人信息", path: "/portal/doctor/profile", icon: "User" },
       { title: "账户设置", path: "/portal/doctor/account", icon: "Setting" },
       { title: "密码修改", path: "/portal/doctor/change-password", icon: "Lock" },
     ],
