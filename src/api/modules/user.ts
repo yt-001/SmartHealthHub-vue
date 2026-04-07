@@ -69,3 +69,22 @@ export const register = async (data: any): Promise<ApiResponse<any>> => {
 export const submitDoctorAuthentication = async (data: any): Promise<ApiResponse<any>> => {
   return request.post('/auth/doctor-authenticate', data) as Promise<ApiResponse<any>>
 }
+
+/**
+ * 根据用户ID获取用户详情
+ * @param id 用户ID
+ */
+export const getUserById = async (id: string | number): Promise<ApiResponse<any>> => {
+  return request.get(`/user/${id}`) as Promise<ApiResponse<any>>
+}
+
+export const userApi = {
+  login,
+  refresh,
+  check,
+  logout,
+  updateProfile,
+  register,
+  submitDoctorAuthentication,
+  getUserById
+}

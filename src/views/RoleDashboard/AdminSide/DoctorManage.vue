@@ -128,6 +128,15 @@
         </template>
       </el-table-column>
 
+      <!-- 操作列 -->
+      <el-table-column label="操作" width="100" fixed="right">
+        <template #default="{ row }">
+          <el-button type="primary" link size="small" @click="handleViewDetail(row)">
+            查看
+          </el-button>
+        </template>
+      </el-table-column>
+
       <!-- 空数据插槽：区分异常与正常无数据 -->
       <template #empty>
         <div v-if="!loading" class="table-empty">
@@ -149,6 +158,12 @@
         @size-change="onPageSizeChange"
       />
     </div>
+
+    <!-- 医生详情弹窗 -->
+    <DoctorDetailDialog
+      v-model="detailDialogVisible"
+      :doctor-id="selectedDoctorId"
+    />
   </div>
 </template>
 
@@ -158,6 +173,7 @@ import { ref, onMounted } from 'vue'
 import { Search, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { doctorApi } from '@/api'
 import type { DoctorItem } from '@/api/types/doctorTypes'
+import DoctorDetailDialog from './components/DoctorDetailDialog.vue'
 
 /** 禁止模拟数据：所有数据都来自后端 */
 const useMock = false
@@ -345,6 +361,17 @@ const statusInfo = (s: number) => {
 const getNameInitial = (name: string = '') => {
   if (!name) return '医'
   return name.trim().charAt(0)
+}
+
+/** 详情弹窗相关 */
+const detailDialogVisible = ref(false)
+const selectedDoctorId = ref<string | number | undefined>(undefined)
+
+/** 查看医生详情 */
+const handleViewDetail = (row: DoctorItem) => {
+  // 使用医生档案ID查询详情（后端接口 /doctor/profiles/{id} 需要档案ID）
+  selectedDoctorId.value = row.id
+  detailDialogVisible.value = true
 }
 
 onMounted(fetchList)

@@ -113,6 +113,16 @@
       <el-table-column prop="updatedAt" label="更新时间" min-width="170">
         <template #default="{ row }">{{ formatTime(row.updatedAt || row.updateTime) }}</template>
       </el-table-column>
+
+      <!-- 操作列 -->
+      <el-table-column label="操作" width="100" fixed="right">
+        <template #default="{ row }">
+          <el-button type="primary" link size="small" @click="handleViewDetail(row)">
+            查看
+          </el-button>
+        </template>
+      </el-table-column>
+
       <template #empty>
         <div v-if="!loading" class="table-empty">{{ fetchError ? '数据异常，请稍后重试' : '暂无数据' }}</div>
       </template>
@@ -131,6 +141,12 @@
         @size-change="onPageSizeChange"
       />
     </div>
+
+    <!-- 用户详情弹窗 -->
+    <UserDetailDialog
+      v-model="detailDialogVisible"
+      :user-id="selectedUserId"
+    />
   </div>
 </template>
 
@@ -140,6 +156,7 @@ import { ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { systemUserApi } from '@/api/modules/systemUser'
 import type { UserItem } from '@/api/types/userManageTypes'
 import { formatTime, useDebounce } from '@/utils/common'
+import UserDetailDialog from './components/UserDetailDialog.vue'
 
 const advancedOpen = ref(false)
 const list = ref<UserItem[]>([])
@@ -266,6 +283,16 @@ const statusInfo = (s?: number) => {
     case 3: return { text: '已注销', type: 'danger' as const }
     default: return { text: '-', type: 'info' as const }
   }
+}
+
+/** 详情弹窗相关 */
+const detailDialogVisible = ref(false)
+const selectedUserId = ref<string | number | undefined>(undefined)
+
+/** 查看用户详情 */
+const handleViewDetail = (row: UserItem) => {
+  selectedUserId.value = row.id
+  detailDialogVisible.value = true
 }
 
 onMounted(fetchList)
