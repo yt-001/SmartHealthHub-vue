@@ -6,14 +6,7 @@
       <form @submit.prevent="onSignUp">
         <h1>创建账户</h1>
 
-        <!-- 社交图标（示例） -->
-        <div class="socials">
-          <a href="javascript:void(0)"><i class="ri-facebook-fill"></i></a>
-          <a href="javascript:void(0)"><i class="ri-google-fill"></i></a>
-          <a href="javascript:void(0)"><i class="ri-linkedin-fill"></i></a>
-        </div>
-
-        <span>或使用邮箱/手机号完成注册</span>
+        <span>请使用邮箱/手机号完成注册</span>
 
         <div class="form__group">
           <!-- 注册姓名 -->
@@ -57,14 +50,7 @@
       <form @submit.prevent="onSignIn">
         <h1>登录</h1>
 
-        <!-- 社交图标（示例） -->
-        <div class="socials">
-          <a href="javascript:void(0)"><i class="ri-facebook-fill"></i></a>
-          <a href="javascript:void(0)"><i class="ri-google-fill"></i></a>
-          <a href="javascript:void(0)"><i class="ri-linkedin-fill"></i></a>
-        </div>
-
-        <span>或使用已有账号</span>
+        <span>请使用已有账号登录</span>
 
         <div class="form__group">
           <!-- 登录手机号/邮箱 -->
